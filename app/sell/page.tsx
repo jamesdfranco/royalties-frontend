@@ -112,13 +112,20 @@ export default function SellPage() {
       // Create a JSON metadata object, encoded in the URI
       const metadata = {
         source: formData.revenueSource,
-        work: formData.workIdentifier,
-        description: formData.description,
-        imageUrl: formData.imageUrl,
+        work: formData.workIdentifier.slice(0, 100), // Limit length
+        description: formData.description.slice(0, 200), // Limit length
+        imageUrl: formData.imageUrl.slice(0, 200), // Limit URL length
       };
       // Encode as base64 for on-chain storage (simple approach)
       const metadataJson = JSON.stringify(metadata);
       const metadataUri = `data:application/json;base64,${Buffer.from(metadataJson).toString('base64')}`;
+      
+      // Check if metadata is too large for on-chain storage
+      if (metadataUri.length > 500) {
+        showToast("Metadata too large. Try shorter description or image URL.", "error");
+        setIsSubmitting(false);
+        return;
+      }
 
       const args = {
         metadataUri: metadataUri,
@@ -289,79 +296,36 @@ export default function SellPage() {
                           value={formData.description}
                           onChange={handleChange}
                           rows={3}
+                          maxLength={200}
                           placeholder="Describe what you're selling and why it's a good investment..."
                           className="w-full px-4 py-3 border border-black bg-white text-black placeholder:text-black/40 focus:outline-none focus:ring-2 focus:ring-black resize-none"
                         />
-                        <p className="mt-2 text-sm text-black/60">
-                          Tell potential buyers about your content and revenue history.
-                        </p>
+                        <div className="mt-2 flex justify-between">
+                          <p className="text-sm text-black/60">
+                            Brief description of your content.
+                          </p>
+                          <p className={`text-sm ${formData.description.length > 180 ? 'text-red-500' : 'text-black/40'}`}>
+                            {formData.description.length}/200
+                          </p>
+                        </div>
                       </div>
 
                       <div>
-                        <label className="block text-sm font-medium mb-2">
-                          Cover Image <span className="text-black/40">(optional)</span>
+                        <label htmlFor="imageUrl" className="block text-sm font-medium mb-2">
+                          Cover Image URL <span className="text-black/40">(optional)</span>
                         </label>
-                        
-                        {/* Image Upload */}
-                        <div className="space-y-3">
-                          <div className="flex gap-3">
-                            <label className="flex-1 cursor-pointer">
-                              <div className="px-4 py-3 border border-black bg-white text-black text-center hover:bg-gray-50 transition-colors">
-                                {formData.imageUrl ? 'Change Image' : 'Upload Image'}
-                              </div>
-                              <input
-                                type="file"
-                                accept="image/*"
-                                className="hidden"
-                                onChange={(e) => {
-                                  const file = e.target.files?.[0];
-                                  if (file) {
-                                    if (file.size > 500 * 1024) {
-                                      showToast("Image must be under 500KB", "error");
-                                      return;
-                                    }
-                                    const reader = new FileReader();
-                                    reader.onloadend = () => {
-                                      setFormData(prev => ({ ...prev, imageUrl: reader.result as string }));
-                                    };
-                                    reader.readAsDataURL(file);
-                                  }
-                                }}
-                              />
-                            </label>
-                            {formData.imageUrl && (
-                              <button
-                                type="button"
-                                onClick={() => setFormData(prev => ({ ...prev, imageUrl: '' }))}
-                                className="px-4 py-3 border border-black/30 text-black/60 hover:border-black hover:text-black transition-colors"
-                              >
-                                Remove
-                              </button>
-                            )}
-                          </div>
-                          
-                          {/* Or use URL */}
-                          <div className="flex items-center gap-3">
-                            <div className="flex-1 h-px bg-black/10" />
-                            <span className="text-xs text-black/40 uppercase">or paste URL</span>
-                            <div className="flex-1 h-px bg-black/10" />
-                          </div>
-                          
-                          <input
-                            type="url"
-                            id="imageUrl"
-                            name="imageUrl"
-                            value={formData.imageUrl.startsWith('data:') ? '' : formData.imageUrl}
-                            onChange={handleChange}
-                            placeholder="https://example.com/thumbnail.jpg"
-                            className="w-full px-4 py-3 border border-black bg-white text-black placeholder:text-black/40 focus:outline-none focus:ring-2 focus:ring-black"
-                          />
-                        </div>
-                        
+                        <input
+                          type="url"
+                          id="imageUrl"
+                          name="imageUrl"
+                          value={formData.imageUrl}
+                          onChange={handleChange}
+                          placeholder="https://i.imgur.com/example.jpg"
+                          className="w-full px-4 py-3 border border-black bg-white text-black placeholder:text-black/40 focus:outline-none focus:ring-2 focus:ring-black"
+                        />
                         <p className="mt-2 text-sm text-black/60">
-                          A thumbnail or cover image for your listing. Max 500KB for uploads.
+                          Link to a thumbnail image. Use <a href="https://imgur.com" target="_blank" rel="noopener noreferrer" className="underline hover:no-underline">imgur.com</a> or similar to host your image.
                         </p>
-                        
                         {formData.imageUrl && (
                           <div className="mt-3 border border-black/20 p-2">
                             <img 
