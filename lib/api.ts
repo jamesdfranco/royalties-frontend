@@ -85,7 +85,7 @@ export async function fetchResaleListingsFromAPI(): Promise<ResaleListingFromAPI
 }
 
 /**
- * Parse metadata URI to extract listing details (sync version for base64)
+ * Parse metadata URI to extract listing details (sync version for base64 and ipfs)
  */
 export function parseMetadataFromAPI(uri: string): { 
   name: string; 
@@ -109,11 +109,23 @@ export function parseMetadataFromAPI(uri: string): {
     }
   }
   
-  // Fallback: extract from URI path
-  const parts = uri.replace('ipfs://', '').split('/');
+  // Handle ipfs:// format (e.g., ipfs://youtube/my-video)
+  if (uri.startsWith('ipfs://')) {
+    const parts = uri.replace('ipfs://', '').split('/');
+    const platform = parts[0] || 'Unknown';
+    const name = parts.slice(1).join('/') || 'Untitled';
+    return {
+      name,
+      platform,
+      imageUrl: '',
+      description: '',
+    };
+  }
+  
+  // Fallback
   return {
-    name: parts[parts.length - 1] || 'Untitled',
-    platform: parts[0] || 'Unknown',
+    name: 'Untitled',
+    platform: 'Unknown',
     imageUrl: '',
     description: '',
   };
@@ -138,6 +150,13 @@ export async function fetchMetadataFromURI(uri: string): Promise<{
 
   // Base64 encoded JSON (old format)
   if (uri.startsWith('data:application/json;base64,')) {
+    const result = parseMetadataFromAPI(uri);
+    metadataCache.set(uri, result);
+    return result;
+  }
+  
+  // IPFS format (e.g., ipfs://youtube/my-video)
+  if (uri.startsWith('ipfs://')) {
     const result = parseMetadataFromAPI(uri);
     metadataCache.set(uri, result);
     return result;

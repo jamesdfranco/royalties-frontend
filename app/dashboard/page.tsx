@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { useWalletModal } from "@solana/wallet-adapter-react-ui";
@@ -17,6 +17,7 @@ import {
   listForResale,
   useRoyaltiesProgram,
 } from "@/lib/solana";
+import { fetchMetadataFromURI } from "@/lib/api";
 
 interface OwnedRoyalty {
   publicKey: string;
@@ -69,6 +70,9 @@ export default function DashboardPage() {
     txId: string;
     timestamp: number;
   }[]>([]);
+  
+  // Cached metadata for https:// URIs
+  const [metadataCache, setMetadataCache] = useState<Record<string, { source: string; work: string; imageUrl: string }>>({});
 
   // Load activities from localStorage
   useEffect(() => {
@@ -150,6 +154,34 @@ export default function DashboardPage() {
 
     loadData();
   }, [connected, publicKey]);
+
+  // Fetch metadata for https:// URIs
+  useEffect(() => {
+    async function fetchMetadata() {
+      const allUris = [
+        ...ownedRoyalties.map(r => r.metadataUri),
+        ...createdListings.map(l => l.metadataUri),
+      ].filter(uri => uri.startsWith('https://'));
+      
+      for (const uri of allUris) {
+        if (!metadataCache[uri]) {
+          try {
+            const meta = await fetchMetadataFromURI(uri);
+            setMetadataCache(prev => ({
+              ...prev,
+              [uri]: { source: meta.platform, work: meta.name, imageUrl: meta.imageUrl }
+            }));
+          } catch (e) {
+            console.error('Failed to fetch metadata:', e);
+          }
+        }
+      }
+    }
+    
+    if (ownedRoyalties.length > 0 || createdListings.length > 0) {
+      fetchMetadata();
+    }
+  }, [ownedRoyalties, createdListings]);
 
   // Handle claim payout
   const handleClaim = async (royalty: OwnedRoyalty) => {
@@ -285,20 +317,32 @@ export default function DashboardPage() {
     }
   };
 
-  // Parse metadata URI (handles both old and new formats)
-  const parseUri = (uri: string) => {
+  // Parse metadata URI (handles old, new, and URL formats)
+  const parseUri = useCallback((uri: string) => {
     // New format: data:application/json;base64,...
     if (uri.startsWith('data:application/json;base64,')) {
       try {
         const base64 = uri.replace('data:application/json;base64,', '');
         const json = JSON.parse(Buffer.from(base64, 'base64').toString('utf8'));
-        return { source: json.source || 'other', work: json.work || 'Unknown', imageUrl: json.imageUrl };
+        return { source: json.source || 'other', work: json.work || 'Unknown', imageUrl: json.imageUrl || '' };
       } catch (e) { /* fallthrough */ }
     }
-    // Old format: ipfs://source/work
-    const parts = uri.replace("ipfs://", "").split("/");
-    return { source: parts[0] || "Unknown", work: parts.slice(1).join("/") || uri };
-  };
+    // IPFS format: ipfs://source/work
+    if (uri.startsWith('ipfs://')) {
+      const parts = uri.replace("ipfs://", "").split("/");
+      return { source: parts[0] || "Unknown", work: parts.slice(1).join("/") || uri, imageUrl: '' };
+    }
+    // HTTPS URL format (Vercel Blob) - use cached metadata
+    if (uri.startsWith('https://')) {
+      const cached = metadataCache[uri];
+      if (cached) {
+        return cached;
+      }
+      return { source: 'Loading...', work: 'Loading...', imageUrl: '' };
+    }
+    // Fallback
+    return { source: "Unknown", work: uri, imageUrl: '' };
+  }, [metadataCache]);
 
   // Format duration
   const formatDuration = (seconds: number) => {
@@ -714,8 +758,8 @@ export default function DashboardPage() {
                     </motion.div>
                   );
                 })}
-              </div>
-            ) : (
+                </div>
+              ) : (
               <Card className="text-center py-16">
                 <h3 className="text-xl font-bold mb-2">No Activity Yet</h3>
                 <p className="text-black/60 mb-6">
@@ -727,7 +771,7 @@ export default function DashboardPage() {
                 >
                   Browse Marketplace
                 </Link>
-              </Card>
+                </Card>
             )
           )}
         </div>

@@ -41,10 +41,9 @@ export default function MarketplacePage() {
         // Fetch primary listings from cached API
         const primaryData = await fetchListingsFromAPI();
         
-        // Filter to active listings with valid metadata
+        // Filter to active listings only (show all formats)
         const activeListings = primaryData.filter(l => 
-          l.status === 'Active' && 
-          (l.metadataUri?.startsWith('data:application/json;base64,') || l.metadataUri?.startsWith('https://'))
+          l.status === 'Active' && l.metadataUri
         );
         
         // Fetch metadata for each listing (in parallel)

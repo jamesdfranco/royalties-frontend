@@ -462,23 +462,20 @@ export default function ListingDetailPage() {
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
             {/* Left: Listing Details */}
             <div className="lg:col-span-2 space-y-8">
-              {/* Listing Image */}
-              {displayImage && (
-                <div className="border border-black/20 overflow-hidden">
-                  <img 
-                    src={displayImage} 
-                    alt={displayName}
-                    className="w-full h-64 object-cover"
-                  />
-                </div>
-              )}
-
               {/* Creator/Seller Info */}
               <div>
                 <div className="flex items-center gap-4 mb-4">
-                  <div className={`w-16 h-16 flex items-center justify-center text-white font-bold text-2xl ${listing.isResale ? 'bg-purple-600' : 'bg-black'}`}>
-                    {displayPlatform.charAt(0).toUpperCase()}
+                  {displayImage ? (
+                    <img 
+                      src={displayImage} 
+                      alt={displayName}
+                      className="w-16 h-16 object-cover"
+                    />
+                  ) : (
+                    <div className={`w-16 h-16 flex items-center justify-center text-white font-bold text-2xl ${listing.isResale ? 'bg-purple-600' : 'bg-black'}`}>
+                      {displayPlatform.charAt(0).toUpperCase()}
                     </div>
+                  )}
                   <div className="flex-1">
                     <p className="text-sm text-black/50 uppercase tracking-wider">{displayPlatform}</p>
                     <h2 className="text-3xl font-bold">{displayName}</h2>
