@@ -20,122 +20,6 @@ const sourceLabels: Record<string, string> = {
   other: "Other",
 };
 
-// Secondary market listings (resales)
-const secondaryListings: ListingData[] = [
-  {
-    id: "s1",
-    creatorName: "Alex Rivera",
-    revenueSource: "YouTube AdSense - Tech Reviews",
-    percentageOffered: 1,
-    duration: "18 months remaining",
-    price: 650,
-    isSecondary: true,
-    currentOwner: "8xH3...k9Pm",
-  },
-  {
-    id: "s2",
-    creatorName: "Maya Chen",
-    revenueSource: "Spotify Streaming - Electronic Music",
-    percentageOffered: 2,
-    duration: "30 months remaining",
-    price: 1800,
-    isSecondary: true,
-    currentOwner: "4rKm...Xt7n",
-  },
-  {
-    id: "s3",
-    creatorName: "Jordan Blake",
-    revenueSource: "Twitch Subscriptions",
-    percentageOffered: 4,
-    duration: "8 months remaining",
-    price: 1900,
-    isSecondary: true,
-    currentOwner: "9pLq...Wz2a",
-  },
-  {
-    id: "s4",
-    creatorName: "Taylor Reed",
-    revenueSource: "Indie Game Sales - Steam",
-    percentageOffered: 0.5,
-    duration: "Perpetual",
-    price: 3500,
-    isSecondary: true,
-    currentOwner: "2bNr...Hy6c",
-  },
-  {
-    id: "s5",
-    creatorName: "Sam Foster",
-    revenueSource: "Patreon Memberships - Art Community",
-    percentageOffered: 5,
-    duration: "12 months remaining",
-    price: 2100,
-    isSecondary: true,
-    currentOwner: "7vCx...Jm4k",
-  },
-  {
-    id: "s6",
-    creatorName: "Riley Hayes",
-    revenueSource: "Newsletter Subscriptions - Substack",
-    percentageOffered: 3.5,
-    duration: "20 months remaining",
-    price: 2800,
-    isSecondary: true,
-    currentOwner: "1zQw...Tf9s",
-  },
-];
-
-// Primary market listings (new from creators)
-const primaryListings: ListingData[] = [
-  {
-    id: "p1",
-    creatorName: "Alex Rivera",
-    revenueSource: "YouTube AdSense - Tech Reviews",
-    percentageOffered: 5,
-    duration: "24 months",
-    price: 2500,
-  },
-  {
-    id: "p2",
-    creatorName: "Maya Chen",
-    revenueSource: "Spotify Streaming - Electronic Music",
-    percentageOffered: 10,
-    duration: "36 months",
-    price: 8000,
-  },
-  {
-    id: "p3",
-    creatorName: "Jordan Blake",
-    revenueSource: "Twitch Subscriptions",
-    percentageOffered: 8,
-    duration: "12 months",
-    price: 4500,
-  },
-  {
-    id: "p4",
-    creatorName: "Sam Foster",
-    revenueSource: "Patreon Memberships - Art Community",
-    percentageOffered: 15,
-    duration: "18 months",
-    price: 6000,
-  },
-  {
-    id: "p5",
-    creatorName: "Taylor Reed",
-    revenueSource: "Indie Game Sales - Steam",
-    percentageOffered: 3,
-    duration: "Perpetual",
-    price: 15000,
-  },
-  {
-    id: "p6",
-    creatorName: "Casey Morgan",
-    revenueSource: "eBook Royalties - Amazon KDP",
-    percentageOffered: 12,
-    duration: "48 months",
-    price: 3200,
-  },
-];
-
 type MarketType = "secondary" | "primary";
 type SortOption = "newest" | "price-low" | "price-high" | "percentage";
 
@@ -212,10 +96,10 @@ export default function MarketplacePage() {
     loadListings();
   }, []);
 
-  // Raw listings based on market type
+  // Raw listings based on market type (real on-chain data only)
   const rawListings = marketType === "secondary" 
-    ? (onChainSecondaryListings.length > 0 ? onChainSecondaryListings : secondaryListings)
-    : (onChainPrimaryListings.length > 0 ? onChainPrimaryListings : primaryListings);
+    ? onChainSecondaryListings
+    : onChainPrimaryListings;
 
   // Filtered and sorted listings
   const listings = useMemo(() => {
@@ -502,24 +386,42 @@ export default function MarketplacePage() {
                 animate={{ opacity: 1 }}
                 className="py-16 text-center border border-dashed border-black/20"
               >
-                <div className="text-4xl mb-4">🔍</div>
-                <h3 className="text-xl font-bold mb-2">No listings found</h3>
+                <div className="text-4xl mb-4">{marketType === "primary" ? "📋" : "🔄"}</div>
+                <h3 className="text-xl font-bold mb-2">
+                  {searchQuery || filter !== 'all' || priceRange[0] > 0 || priceRange[1] < 100000
+                    ? "No listings match your filters"
+                    : marketType === "primary" 
+                      ? "No active listings yet"
+                      : "No resale listings yet"
+                  }
+                </h3>
                 <p className="text-black/60 mb-4">
                   {searchQuery 
                     ? `No results for "${searchQuery}"`
-                    : "Try adjusting your filters"
+                    : marketType === "primary"
+                      ? "Be the first to create a royalty listing!"
+                      : "Check back later for secondary market listings"
                   }
                 </p>
-                <button
-                  onClick={() => {
-                    setSearchQuery('');
-                    setFilter('all');
-                    setPriceRange([0, 100000]);
-                  }}
-                  className="px-6 py-2 border border-black font-medium hover:bg-black hover:text-white transition-colors"
-                >
-                  Clear Filters
-                </button>
+                {(searchQuery || filter !== 'all' || priceRange[0] > 0 || priceRange[1] < 100000) ? (
+                  <button
+                    onClick={() => {
+                      setSearchQuery('');
+                      setFilter('all');
+                      setPriceRange([0, 100000]);
+                    }}
+                    className="px-6 py-2 border border-black font-medium hover:bg-black hover:text-white transition-colors"
+                  >
+                    Clear Filters
+                  </button>
+                ) : marketType === "primary" ? (
+                  <Link
+                    href="/sell"
+                    className="inline-block px-6 py-2 bg-black text-white font-medium hover:bg-black/80 transition-colors"
+                  >
+                    Create Listing
+                  </Link>
+                ) : null}
               </motion.div>
             )}
           </AnimatePresence>
