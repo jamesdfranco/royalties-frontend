@@ -79,17 +79,6 @@ const howItWorksSteps = [
   { step: "07", title: "Trade", description: "Tokens can be resold on secondary market" },
 ];
 
-const topCreators = [
-  { rank: 1, name: "Maya Chen", handle: "@mayamusic", totalRaised: "$48,200" },
-  { rank: 2, name: "Alex Rivera", handle: "@alextech", totalRaised: "$36,500" },
-  { rank: 3, name: "Jordan Blake", handle: "@jblakestreams", totalRaised: "$28,900" },
-];
-
-const topTraders = [
-  { rank: 1, name: "whale.sol", handle: "8xH3...k9Pm", volume: "$124,500" },
-  { rank: 2, name: "cryptoking", handle: "4rKm...Xt7n", volume: "$89,200" },
-  { rank: 3, name: "royalty_hunter", handle: "9pLq...Wz2a", volume: "$67,800" },
-];
 
 export default function Home() {
   // Section refs for animations
@@ -231,7 +220,7 @@ export default function Home() {
                 transition={{ duration: 0.6, delay: 0.2 }}
                 className="text-xl text-black/60 mb-8"
               >
-                Top creators and traders are already building on Royalties.fun. Track performance and discover opportunities.
+                Top creators and traders are building on Royalties.fun. Track performance and discover opportunities.
               </motion.p>
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
@@ -242,81 +231,30 @@ export default function Home() {
                   href="/leaderboard"
                   className="inline-flex items-center gap-2 text-lg font-medium group"
                 >
-                  View Full Leaderboard
+                  View Leaderboard
                   <span className="group-hover:translate-x-1 transition-transform">→</span>
                 </Link>
               </motion.div>
             </div>
 
-            {/* Right: Tables */}
-            <div className="space-y-8">
-              {/* Creators */}
-              <motion.div
-                initial={{ opacity: 0, x: 40 }}
-                animate={section4InView ? { opacity: 1, x: 0 } : {}}
-                transition={{ duration: 0.7, delay: 0.3 }}
-              >
-                <h3 className="text-sm font-bold uppercase tracking-wider mb-4 text-black/60">
-                  Top Creators
-                </h3>
-                <div className="border border-black">
-                  {topCreators.map((creator, index) => (
-                    <motion.div
-                      key={creator.rank}
-                      initial={{ opacity: 0, x: 20 }}
-                      animate={section4InView ? { opacity: 1, x: 0 } : {}}
-                      transition={{ duration: 0.4, delay: 0.5 + index * 0.1 }}
-                      className={`flex items-center justify-between p-4 ${
-                        index !== topCreators.length - 1 ? "border-b border-black" : ""
-                      } hover:bg-gray-50 transition-colors`}
-                    >
-                      <div className="flex items-center gap-4">
-                        <span className="text-2xl font-bold w-8">{creator.rank}</span>
-                        <div>
-                          <p className="font-bold">{creator.name}</p>
-                          <p className="text-sm text-black/60">{creator.handle}</p>
-                        </div>
-                      </div>
-                      <span className="font-bold">{creator.totalRaised}</span>
-                    </motion.div>
-                  ))}
-                </div>
-              </motion.div>
-
-              {/* Traders */}
-              <motion.div
-                initial={{ opacity: 0, x: 40 }}
-                animate={section4InView ? { opacity: 1, x: 0 } : {}}
-                transition={{ duration: 0.7, delay: 0.5 }}
-              >
-                <h3 className="text-sm font-bold uppercase tracking-wider mb-4 text-black/60 flex items-center gap-2">
-                  Top Traders
-                  <span className="text-xs border border-black px-2 py-0.5">SECONDARY</span>
-                </h3>
-                <div className="border border-black">
-                  {topTraders.map((trader, index) => (
-                    <motion.div
-                      key={trader.rank}
-                      initial={{ opacity: 0, x: 20 }}
-                      animate={section4InView ? { opacity: 1, x: 0 } : {}}
-                      transition={{ duration: 0.4, delay: 0.7 + index * 0.1 }}
-                      className={`flex items-center justify-between p-4 ${
-                        index !== topTraders.length - 1 ? "border-b border-black" : ""
-                      } hover:bg-gray-50 transition-colors`}
-                    >
-                      <div className="flex items-center gap-4">
-                        <span className="text-2xl font-bold w-8">{trader.rank}</span>
-                        <div>
-                          <p className="font-bold">{trader.name}</p>
-                          <p className="text-sm text-black/60 font-mono">{trader.handle}</p>
-                        </div>
-                      </div>
-                      <span className="font-bold">{trader.volume}</span>
-                    </motion.div>
-                  ))}
-                </div>
-              </motion.div>
-            </div>
+            {/* Right: Coming Soon */}
+            <motion.div
+              initial={{ opacity: 0, x: 40 }}
+              animate={section4InView ? { opacity: 1, x: 0 } : {}}
+              transition={{ duration: 0.7, delay: 0.3 }}
+              className="flex items-center justify-center"
+            >
+              <div className="border border-black p-12 text-center">
+                <p className="text-4xl font-bold mb-4">Leaderboard</p>
+                <p className="text-black/60">Rankings based on real on-chain activity</p>
+                <Link
+                  href="/leaderboard"
+                  className="inline-block mt-6 px-6 py-3 bg-black text-white font-medium hover:bg-black/80 transition-colors"
+                >
+                  View Rankings
+                </Link>
+              </div>
+            </motion.div>
           </div>
         </div>
       </FullSection>
@@ -368,26 +306,6 @@ export default function Home() {
               </Link>
             </motion.div>
 
-            {/* Stats row */}
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={section5InView ? { opacity: 1 } : {}}
-              transition={{ duration: 0.8, delay: 0.7 }}
-              className="mt-20 pt-12 border-t border-black/10 grid grid-cols-3 gap-8 max-w-2xl mx-auto"
-            >
-              <div>
-                <p className="text-4xl font-bold">$2.4M+</p>
-                <p className="text-sm text-black/60 mt-1">Total Volume</p>
-              </div>
-              <div>
-                <p className="text-4xl font-bold">312</p>
-                <p className="text-sm text-black/60 mt-1">Active Contracts</p>
-              </div>
-              <div>
-                <p className="text-4xl font-bold">1.2K+</p>
-                <p className="text-sm text-black/60 mt-1">Traders</p>
-              </div>
-            </motion.div>
           </motion.div>
         </div>
       </FullSection>

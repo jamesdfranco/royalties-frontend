@@ -188,39 +188,63 @@ export default function MarketplacePage() {
             {marketType === "secondary" ? (
               <>
                 <div className="border border-black p-4">
-                  <p className="text-sm text-black/60">24h Volume</p>
-                  <p className="text-2xl font-bold">$48,350</p>
-                </div>
-                <div className="border border-black p-4">
-                  <p className="text-sm text-black/60">Active Listings</p>
-                  <p className="text-2xl font-bold">127</p>
+                  <p className="text-sm text-black/60">Active Resales</p>
+                  <p className="text-2xl font-bold">{onChainSecondaryListings.length}</p>
                 </div>
                 <div className="border border-black p-4">
                   <p className="text-sm text-black/60">Floor Price</p>
-                  <p className="text-2xl font-bold">$180</p>
+                  <p className="text-2xl font-bold">
+                    {onChainSecondaryListings.length > 0 
+                      ? `$${Math.min(...onChainSecondaryListings.map(l => l.price)).toLocaleString()}`
+                      : '—'}
+                  </p>
                 </div>
                 <div className="border border-black p-4">
-                  <p className="text-sm text-black/60">Total Traded</p>
-                  <p className="text-2xl font-bold">$1.8M</p>
+                  <p className="text-sm text-black/60">Highest Price</p>
+                  <p className="text-2xl font-bold">
+                    {onChainSecondaryListings.length > 0 
+                      ? `$${Math.max(...onChainSecondaryListings.map(l => l.price)).toLocaleString()}`
+                      : '—'}
+                  </p>
+                </div>
+                <div className="border border-black p-4">
+                  <p className="text-sm text-black/60">Total Value</p>
+                  <p className="text-2xl font-bold">
+                    {onChainSecondaryListings.length > 0 
+                      ? `$${onChainSecondaryListings.reduce((sum, l) => sum + l.price, 0).toLocaleString()}`
+                      : '—'}
+                  </p>
                 </div>
               </>
             ) : (
               <>
                 <div className="border border-black p-4">
-                  <p className="text-sm text-black/60">Total Raised</p>
-                  <p className="text-2xl font-bold">$2.4M</p>
-                </div>
-                <div className="border border-black p-4">
                   <p className="text-sm text-black/60">Active Listings</p>
-                  <p className="text-2xl font-bold">42</p>
+                  <p className="text-2xl font-bold">{onChainPrimaryListings.length}</p>
                 </div>
                 <div className="border border-black p-4">
-                  <p className="text-sm text-black/60">Avg. Raise</p>
-                  <p className="text-2xl font-bold">$5,800</p>
+                  <p className="text-sm text-black/60">Floor Price</p>
+                  <p className="text-2xl font-bold">
+                    {onChainPrimaryListings.length > 0 
+                      ? `$${Math.min(...onChainPrimaryListings.map(l => l.price)).toLocaleString()}`
+                      : '—'}
+                  </p>
                 </div>
                 <div className="border border-black p-4">
-                  <p className="text-sm text-black/60">Creators</p>
-                  <p className="text-2xl font-bold">156</p>
+                  <p className="text-sm text-black/60">Highest Price</p>
+                  <p className="text-2xl font-bold">
+                    {onChainPrimaryListings.length > 0 
+                      ? `$${Math.max(...onChainPrimaryListings.map(l => l.price)).toLocaleString()}`
+                      : '—'}
+                  </p>
+                </div>
+                <div className="border border-black p-4">
+                  <p className="text-sm text-black/60">Total Value</p>
+                  <p className="text-2xl font-bold">
+                    {onChainPrimaryListings.length > 0 
+                      ? `$${onChainPrimaryListings.reduce((sum, l) => sum + l.price, 0).toLocaleString()}`
+                      : '—'}
+                  </p>
                 </div>
               </>
             )}
@@ -361,15 +385,15 @@ export default function MarketplacePage() {
 
           <AnimatePresence mode="wait">
             {listings.length > 0 ? (
-              <motion.div
+            <motion.div
                 key={`${marketType}-${filter}-${sortBy}`}
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: 0.15 }}
-                className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
-              >
-                {listings.map((listing) => (
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.15 }}
+              className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
+            >
+              {listings.map((listing) => (
                   <motion.div
                     key={listing.id}
                     initial={{ opacity: 0, y: 20 }}
@@ -378,15 +402,14 @@ export default function MarketplacePage() {
                   >
                     <ListingCard listing={listing} />
                   </motion.div>
-                ))}
-              </motion.div>
+              ))}
+            </motion.div>
             ) : (
               <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 className="py-16 text-center border border-dashed border-black/20"
               >
-                <div className="text-4xl mb-4">{marketType === "primary" ? "📋" : "🔄"}</div>
                 <h3 className="text-xl font-bold mb-2">
                   {searchQuery || filter !== 'all' || priceRange[0] > 0 || priceRange[1] < 100000
                     ? "No listings match your filters"
@@ -428,11 +451,11 @@ export default function MarketplacePage() {
 
           {/* Load more */}
           {listings.length >= 8 && (
-            <div className="mt-12 text-center">
-              <button className="px-8 py-4 border-2 border-black font-medium hover:bg-black hover:text-white transition-colors">
-                Load More Listings
-              </button>
-            </div>
+          <div className="mt-12 text-center">
+            <button className="px-8 py-4 border-2 border-black font-medium hover:bg-black hover:text-white transition-colors">
+              Load More Listings
+            </button>
+          </div>
           )}
         </div>
       </section>
