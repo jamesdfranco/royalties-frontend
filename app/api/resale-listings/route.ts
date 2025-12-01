@@ -19,16 +19,16 @@ interface ResaleListingAccount {
 
 function parseResaleListingAccount(pubkey: PublicKey, data: Buffer): ResaleListingAccount | null {
   try {
-    // ResaleListing is exactly 121 bytes
+    // ResaleListing is exactly 121 bytes (8 disc + 32 seller + 32 royalty_listing + 32 nft_mint + 8 price + 8 listed_at + 1 bump)
     if (data.length !== 121) return null;
 
-    let offset = 8;
+    let offset = 8; // Skip discriminator
 
     // seller (32 bytes)
     const seller = new PublicKey(data.slice(offset, offset + 32)).toString();
     offset += 32;
 
-    // originalListing (32 bytes)
+    // royaltyListing (32 bytes)
     const originalListing = new PublicKey(data.slice(offset, offset + 32)).toString();
     offset += 32;
 
@@ -42,23 +42,25 @@ function parseResaleListingAccount(pubkey: PublicKey, data: Buffer): ResaleListi
     const price = (BigInt(priceHigh) << 32n) + BigInt(priceLow);
     offset += 8;
 
-    // createdAt (i64 - 8 bytes)
-    const createdAtLow = data.readUInt32LE(offset);
-    const createdAtHigh = data.readUInt32LE(offset + 4);
-    const createdAt = (BigInt(createdAtHigh) << 32n) + BigInt(createdAtLow);
+    // listedAt (i64 - 8 bytes)
+    const listedAtLow = data.readUInt32LE(offset);
+    const listedAtHigh = data.readUInt32LE(offset + 4);
+    const listedAt = (BigInt(listedAtHigh) << 32n) + BigInt(listedAtLow);
     offset += 8;
 
-    // isActive (bool - 1 byte)
-    const isActive = data.readUInt8(offset) === 1;
+    // bump (u8 - 1 byte) - not used, just for completeness
+    // const bump = data.readUInt8(offset);
 
+    // ResaleListing accounts exist = they are active
+    // When cancelled or bought, the account is closed
     return {
       pubkey: pubkey.toString(),
       seller,
       originalListing,
       nftMint,
       price: price.toString(),
-      createdAt: createdAt.toString(),
-      isActive,
+      createdAt: listedAt.toString(),
+      isActive: true, // If the account exists, it's active
     };
   } catch (error) {
     console.error('Error parsing resale listing:', error);
