@@ -479,8 +479,10 @@ export default function DashboardPage() {
             ownedRoyalties.length > 0 ? (
           <div className="space-y-4">
                 {ownedRoyalties.map((royalty) => {
-                  const { source, work } = parseUri(royalty.metadataUri);
+                  const { source, work, imageUrl } = parseUri(royalty.metadataUri);
                   const claimable = royalty.payoutPool?.availableToClaimUsdc || 0;
+                  const displayName = work && work !== 'Loading...' && work !== 'Unknown' ? work : source;
+                  const displayPlatform = source && source !== 'Loading...' ? source : '';
                   
                   return (
                     <Card key={royalty.publicKey} className="p-0 overflow-hidden">
@@ -488,12 +490,16 @@ export default function DashboardPage() {
                         {/* Info */}
                         <div className="flex-1 p-6">
                           <div className="flex items-start gap-4">
-                            <div className="w-12 h-12 bg-black flex items-center justify-center text-white font-bold text-xl">
-                              {source.charAt(0).toUpperCase()}
-                            </div>
+                            {imageUrl ? (
+                              <img src={imageUrl} alt={displayName} className="w-12 h-12 object-cover" />
+                            ) : (
+                              <div className="w-12 h-12 bg-black flex items-center justify-center text-white font-bold text-xl">
+                                {displayPlatform.charAt(0).toUpperCase() || '?'}
+                              </div>
+                            )}
                 <div className="flex-1">
-                              <h3 className="font-bold text-lg capitalize">{source}</h3>
-                              <p className="text-sm text-black/60">{work}</p>
+                              <h3 className="font-bold text-lg">{displayName}</h3>
+                              <p className="text-sm text-black/60 capitalize">{displayPlatform}</p>
                               <p className="text-xs text-black/40 font-mono mt-1">
                                 {royalty.publicKey.slice(0, 8)}...{royalty.publicKey.slice(-8)}
                               </p>
@@ -582,9 +588,11 @@ export default function DashboardPage() {
             createdListings.length > 0 ? (
               <div className="space-y-4">
                 {createdListings.map((listing) => {
-                  const { source, work } = parseUri(listing.metadataUri);
+                  const { source, work, imageUrl } = parseUri(listing.metadataUri);
                   const totalDeposited = listing.payoutPool?.totalDepositedUsdc || 0;
                   const totalClaimed = listing.payoutPool?.totalClaimedUsdc || 0;
+                  const displayName = work && work !== 'Loading...' && work !== 'Unknown' ? work : source;
+                  const displayPlatform = source && source !== 'Loading...' ? source : '';
                   
                   return (
                     <Card key={listing.publicKey} className="p-0 overflow-hidden">
@@ -592,12 +600,16 @@ export default function DashboardPage() {
                         {/* Info */}
                         <div className="flex-1 p-6">
                           <div className="flex items-start gap-4">
-                            <div className="w-12 h-12 bg-black flex items-center justify-center text-white font-bold text-xl">
-                              {source.charAt(0).toUpperCase()}
-                            </div>
+                            {imageUrl ? (
+                              <img src={imageUrl} alt={displayName} className="w-12 h-12 object-cover" />
+                            ) : (
+                              <div className="w-12 h-12 bg-black flex items-center justify-center text-white font-bold text-xl">
+                                {displayPlatform.charAt(0).toUpperCase() || '?'}
+                              </div>
+                            )}
                             <div className="flex-1">
                               <div className="flex items-center gap-2">
-                                <h3 className="font-bold text-lg capitalize">{source}</h3>
+                                <h3 className="font-bold text-lg">{displayName}</h3>
                                 <span className={`text-xs px-2 py-0.5 ${
                                   listing.status === 'Active' 
                                     ? 'bg-green-100 text-green-700'
@@ -608,7 +620,7 @@ export default function DashboardPage() {
                                   {listing.status}
                                 </span>
                               </div>
-                              <p className="text-sm text-black/60">{work}</p>
+                              <p className="text-sm text-black/60 capitalize">{displayPlatform}</p>
                               <p className="text-xs text-black/40 font-mono mt-1">
                                 {listing.publicKey.slice(0, 8)}...{listing.publicKey.slice(-8)}
                               </p>

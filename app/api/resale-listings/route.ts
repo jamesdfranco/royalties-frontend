@@ -75,11 +75,8 @@ async function fetchResaleListingsFromChain(): Promise<ResaleListingAccount[]> {
   const connection = new Connection(RPC_URL, 'confirmed');
   const programId = new PublicKey(PROGRAM_ID);
 
-  const accounts = await connection.getProgramAccounts(programId, {
-    filters: [
-      { dataSize: 121 }, // Approximate size of ResaleListing account
-    ],
-  });
+  // Fetch all program accounts - the discriminator is checked during parsing
+  const accounts = await connection.getProgramAccounts(programId);
 
   const listings: ResaleListingAccount[] = [];
 
@@ -89,6 +86,8 @@ async function fetchResaleListingsFromChain(): Promise<ResaleListingAccount[]> {
       listings.push(parsed);
     }
   }
+
+  console.log(`Fetched ${accounts.length} program accounts, ${listings.length} active resale listings`);
 
   return listings;
 }
