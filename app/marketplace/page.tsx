@@ -47,6 +47,12 @@ export default function MarketplacePage() {
           l.status === 'Active' && l.metadataUri
         );
         console.log('Active listings:', activeListings.length);
+        console.log('Active listings details:', activeListings.map(l => ({ 
+          pubkey: l.pubkey.slice(0, 8), 
+          price: l.price, 
+          uri: l.metadataUri?.slice(0, 30),
+          status: l.status
+        })));
         
         // Fetch metadata for each listing (in parallel)
         const formattedPrimary: ListingData[] = await Promise.all(
@@ -97,6 +103,13 @@ export default function MarketplacePage() {
             };
           });
 
+        console.log('Formatted primary listings:', formattedPrimary.length);
+        console.log('Formatted details:', formattedPrimary.map(l => ({
+          id: l.id.slice(0, 8),
+          name: l.listingName,
+          price: l.price,
+          image: l.imageUrl?.slice(0, 30) || 'none'
+        })));
         setOnChainPrimaryListings(formattedPrimary);
         setOnChainSecondaryListings(formattedSecondary);
       } catch (error) {
@@ -117,6 +130,9 @@ export default function MarketplacePage() {
   // Filtered and sorted listings
   const listings = useMemo(() => {
     let result = [...rawListings];
+    console.log('Filtering - start with:', result.length);
+    console.log('Price range:', priceRange);
+    console.log('All prices:', result.map(l => l.price));
 
     // Search filter
     if (searchQuery.trim()) {
@@ -126,6 +142,7 @@ export default function MarketplacePage() {
         l.revenueSource.toLowerCase().includes(query) ||
         l.description?.toLowerCase().includes(query)
       );
+      console.log('After search filter:', result.length);
     }
 
     // Platform filter
@@ -133,12 +150,15 @@ export default function MarketplacePage() {
       result = result.filter(l => 
         l.revenueSource.toLowerCase().includes(filter.toLowerCase())
       );
+      console.log('After platform filter:', result.length);
     }
 
     // Price range filter
+    const beforePriceFilter = result.length;
     result = result.filter(l => 
       l.price >= priceRange[0] && l.price <= priceRange[1]
     );
+    console.log(`After price filter: ${result.length} (removed ${beforePriceFilter - result.length})`);
 
     // Sorting
     switch (sortBy) {
