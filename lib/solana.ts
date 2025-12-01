@@ -486,7 +486,7 @@ export async function isPlatformInitialized(): Promise<boolean> {
   try {
     const account = await connection.getAccountInfo(platformConfig);
     return account !== null;
-  } catch {
+  } catch (e) {
     return false;
   }
 }
@@ -505,7 +505,7 @@ export async function fetchPlatformConfig(): Promise<any | null> {
     // Note: For proper decoding, you'd use the program's account decoder
     // This is a simplified version
     return { address: platformConfig.toBase58(), exists: true };
-  } catch {
+  } catch (e) {
     return null;
   }
 }

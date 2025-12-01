@@ -20,7 +20,7 @@ function parseMetadata(uri: string): { source: string; work: string; description
         description: json.description,
         imageUrl: json.imageUrl,
       };
-    } catch {
+    } catch (e) {
       return { source: 'other', work: uri };
     }
   }

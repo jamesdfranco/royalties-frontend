@@ -77,7 +77,7 @@ export default function DashboardPage() {
       if (stored) {
         try {
           setActivities(JSON.parse(stored));
-        } catch {}
+        } catch (e) {}
       }
     }
   }, [publicKey]);
@@ -293,7 +293,7 @@ export default function DashboardPage() {
         const base64 = uri.replace('data:application/json;base64,', '');
         const json = JSON.parse(Buffer.from(base64, 'base64').toString('utf8'));
         return { source: json.source || 'other', work: json.work || 'Unknown', imageUrl: json.imageUrl };
-      } catch { /* fallthrough */ }
+      } catch (e) { /* fallthrough */ }
     }
     // Old format: ipfs://source/work
     const parts = uri.replace("ipfs://", "").split("/");
