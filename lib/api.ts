@@ -119,6 +119,9 @@ export function parseMetadataFromAPI(uri: string): {
   };
 }
 
+// Cache for fetched metadata
+const metadataCache = new Map<string, { name: string; platform: string; imageUrl: string; description: string }>();
+
 /**
  * Fetch and parse metadata from any URI format (async version)
  */
@@ -128,35 +131,69 @@ export async function fetchMetadataFromURI(uri: string): Promise<{
   imageUrl: string;
   description: string;
 }> {
+  // Check cache first
+  if (metadataCache.has(uri)) {
+    return metadataCache.get(uri)!;
+  }
+
   // Base64 encoded JSON (old format)
   if (uri.startsWith('data:application/json;base64,')) {
-    return parseMetadataFromAPI(uri);
+    const result = parseMetadataFromAPI(uri);
+    metadataCache.set(uri, result);
+    return result;
   }
   
   // HTTPS URL to JSON file (new format from Vercel Blob)
   if (uri.startsWith('https://')) {
     try {
-      const response = await fetch(uri);
+      // Try direct fetch first (Vercel Blob is public)
+      const response = await fetch(uri, { 
+        cache: 'force-cache',
+        headers: { 'Accept': 'application/json' }
+      });
+      
       if (response.ok) {
         const json = await response.json();
-        return {
+        const result = {
           name: json.work || json.name || 'Untitled',
           platform: json.source || 'Unknown',
           imageUrl: json.imageUrl || json.image || '',
           description: json.description || '',
         };
+        metadataCache.set(uri, result);
+        return result;
       }
     } catch (e) {
-      console.error('Failed to fetch metadata from URL:', e);
+      console.error('Direct metadata fetch failed, trying proxy:', e);
+      
+      // Fallback to API proxy
+      try {
+        const proxyUrl = `/api/metadata?url=${encodeURIComponent(uri)}`;
+        const proxyResponse = await fetch(proxyUrl);
+        if (proxyResponse.ok) {
+          const json = await proxyResponse.json();
+          const result = {
+            name: json.work || json.name || 'Untitled',
+            platform: json.source || 'Unknown',
+            imageUrl: json.imageUrl || json.image || '',
+            description: json.description || '',
+          };
+          metadataCache.set(uri, result);
+          return result;
+        }
+      } catch (proxyError) {
+        console.error('Proxy metadata fetch also failed:', proxyError);
+      }
     }
   }
   
   // Fallback
-  return {
+  const fallback = {
     name: 'Untitled',
     platform: 'Unknown',
     imageUrl: '',
     description: '',
   };
+  return fallback;
 }
 
