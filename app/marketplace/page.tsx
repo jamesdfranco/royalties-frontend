@@ -5,37 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
 import SectionHeader from "@/components/SectionHeader";
 import ListingCard, { ListingData } from "@/components/ListingCard";
-import { fetchAllListings, fetchAllResaleListings } from "@/lib/solana";
-
-// Helper to parse metadata URI (supports old and new formats)
-function parseMetadata(uri: string): { source: string; work: string; description?: string; imageUrl?: string } {
-  // New format: data:application/json;base64,...
-  if (uri.startsWith('data:application/json;base64,')) {
-    try {
-      const base64 = uri.replace('data:application/json;base64,', '');
-      const json = JSON.parse(Buffer.from(base64, 'base64').toString('utf8'));
-      return {
-        source: json.source || 'other',
-        work: json.work || 'Unknown',
-        description: json.description,
-        imageUrl: json.imageUrl,
-      };
-    } catch (e) {
-      return { source: 'other', work: uri };
-    }
-  }
-  
-  // Old format: ipfs://source/work
-  if (uri.startsWith('ipfs://')) {
-    const parts = uri.replace('ipfs://', '').split('/');
-    return {
-      source: parts[0] || 'other',
-      work: parts.slice(1).join('/') || 'Unknown',
-    };
-  }
-  
-  return { source: 'other', work: uri };
-}
+import { fetchListingsFromAPI, fetchResaleListingsFromAPI, parseMetadataFromAPI } from "@/lib/api";
 
 // Revenue source display names
 const sourceLabels: Record<string, string> = {
@@ -179,49 +149,56 @@ export default function MarketplacePage() {
   const [onChainPrimaryListings, setOnChainPrimaryListings] = useState<ListingData[]>([]);
   const [onChainSecondaryListings, setOnChainSecondaryListings] = useState<ListingData[]>([]);
 
-  // Fetch listings from blockchain on mount
+  // Fetch listings from cached API on mount
   useEffect(() => {
     async function loadListings() {
       setIsLoading(true);
       try {
-        // Fetch primary listings (royalty listings)
-        const primaryData = await fetchAllListings();
+        // Fetch primary listings from cached API
+        const primaryData = await fetchListingsFromAPI();
         const formattedPrimary: ListingData[] = primaryData
           .filter(l => l.status === 'Active')
           // Only show listings with new metadata format (has images/descriptions)
           .filter(l => l.metadataUri?.startsWith('data:application/json;base64,'))
           .map(l => {
-            const metadata = parseMetadata(l.metadataUri || '');
+            const metadata = parseMetadataFromAPI(l.metadataUri || '');
+            const priceUsdc = Number(l.price) / 1_000_000;
+            const durationSeconds = Number(l.durationSeconds);
             return {
-              id: l.publicKey,
+              id: l.pubkey,
               creatorName: `${l.creator.slice(0, 4)}...${l.creator.slice(-4)}`,
               creatorAddress: l.creator,
-              revenueSource: metadata.work !== 'Unknown' 
-                ? `${sourceLabels[metadata.source] || metadata.source} - ${metadata.work}`
-                : sourceLabels[metadata.source] || 'On-chain Listing',
-              percentageOffered: l.percentage,
-              duration: l.durationSeconds === 0 ? "Perpetual" : `${Math.floor(l.durationSeconds / (30 * 24 * 60 * 60))} months`,
-              durationSeconds: l.durationSeconds,
-              startTimestamp: l.startTimestamp,
-              price: l.priceUsdc,
+              revenueSource: metadata.name !== 'Untitled' 
+                ? `${sourceLabels[metadata.platform] || metadata.platform} - ${metadata.name}`
+                : sourceLabels[metadata.platform] || 'On-chain Listing',
+              percentageOffered: l.percentageBps / 100,
+              duration: durationSeconds === 0 ? "Perpetual" : `${Math.floor(durationSeconds / (30 * 24 * 60 * 60))} months`,
+              durationSeconds: durationSeconds,
+              startTimestamp: Number(l.createdAt),
+              price: priceUsdc,
               imageUrl: metadata.imageUrl,
               description: metadata.description,
-              platformIcon: metadata.source,
+              platformIcon: metadata.platform,
             };
           });
         
-        // Fetch secondary listings (resales)
-        const secondaryData = await fetchAllResaleListings();
-        const formattedSecondary: ListingData[] = secondaryData.map(l => ({
-          id: l.publicKey,
-          creatorName: "Resale Listing",
-          revenueSource: "Secondary Market",
-          percentageOffered: 0,
-          duration: "See Details",
-          price: l.priceUsdc,
-          isSecondary: true,
-          currentOwner: `${l.seller.slice(0, 4)}...${l.seller.slice(-4)}`,
-        }));
+        // Fetch secondary listings from cached API
+        const secondaryData = await fetchResaleListingsFromAPI();
+        const formattedSecondary: ListingData[] = secondaryData
+          .filter(l => l.isActive)
+          .map(l => {
+            const priceUsdc = Number(l.price) / 1_000_000;
+            return {
+              id: l.pubkey,
+              creatorName: "Resale Listing",
+              revenueSource: "Secondary Market",
+              percentageOffered: 0,
+              duration: "See Details",
+              price: priceUsdc,
+              isSecondary: true,
+              currentOwner: `${l.seller.slice(0, 4)}...${l.seller.slice(-4)}`,
+            };
+          });
 
         setOnChainPrimaryListings(formattedPrimary);
         setOnChainSecondaryListings(formattedSecondary);
