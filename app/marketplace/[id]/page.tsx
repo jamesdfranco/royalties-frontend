@@ -478,7 +478,7 @@ export default function ListingDetailPage() {
                 <div className="flex items-center gap-4 mb-4">
                   <div className={`w-16 h-16 flex items-center justify-center text-white font-bold text-2xl ${listing.isResale ? 'bg-purple-600' : 'bg-black'}`}>
                     {displayPlatform.charAt(0).toUpperCase()}
-                  </div>
+                    </div>
                   <div className="flex-1">
                     <p className="text-sm text-black/50 uppercase tracking-wider">{displayPlatform}</p>
                     <h2 className="text-3xl font-bold">{displayName}</h2>
@@ -507,7 +507,7 @@ export default function ListingDetailPage() {
                         : 'border-black/30 text-black/60'
                     }`}>
                       {listing.status}
-                    </span>
+                      </span>
                   </div>
                 </div>
                 {displayDescription && (
@@ -537,7 +537,7 @@ export default function ListingDetailPage() {
               <div className="border-t border-black/10 pt-8">
                 <h3 className="text-xl font-bold mb-4">About This Royalty</h3>
                 <p className="text-black/70 leading-relaxed">
-                  {listing.percentage}% share of {source} revenue from creator {creatorShort}. 
+                  {listing.percentage}% share of {displayPlatform} revenue from creator {creatorShort}. 
                   This royalty token was minted on Solana and represents a claim to future revenue 
                   as specified in the on-chain contract.
                 </p>
@@ -726,18 +726,18 @@ export default function ListingDetailPage() {
                         <div className="border border-black p-4 mb-6">
                           <div className="flex items-center gap-3 mb-4">
                             <div className={`w-10 h-10 flex items-center justify-center text-white font-bold ${listing.isResale ? 'bg-purple-600' : 'bg-black'}`}>
-                              {source.charAt(0).toUpperCase()}
+                              {displayPlatform.charAt(0).toUpperCase()}
                             </div>
                             <div className="flex-1">
                               <div className="flex items-center gap-2">
-                                <p className="font-bold capitalize">{source}</p>
+                                <p className="font-bold capitalize">{displayPlatform}</p>
                                 {listing.isResale && (
                                   <span className="text-[10px] bg-purple-100 text-purple-700 px-1.5 py-0.5 uppercase font-medium">
                                     Resale
                                   </span>
                                 )}
                               </div>
-                              <p className="text-sm text-black/60">{work}</p>
+                              <p className="text-sm text-black/60">{displayName}</p>
                             </div>
                           </div>
                           <div className="border-t border-black/10 pt-4 space-y-2">
