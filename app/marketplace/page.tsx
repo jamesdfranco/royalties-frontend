@@ -28,7 +28,7 @@ export default function MarketplacePage() {
   const [filter, setFilter] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [sortBy, setSortBy] = useState<SortOption>("newest");
-  const [priceRange, setPriceRange] = useState<[number, number]>([0, 100000]);
+  const [priceRange, setPriceRange] = useState<[number, number]>([0, 1000000000]);
   const [isLoading, setIsLoading] = useState(true);
   const [onChainPrimaryListings, setOnChainPrimaryListings] = useState<ListingData[]>([]);
   const [onChainSecondaryListings, setOnChainSecondaryListings] = useState<ListingData[]>([]);
@@ -337,8 +337,8 @@ export default function MarketplacePage() {
               <input
                 type="number"
                 placeholder="Max $"
-                value={priceRange[1] === 100000 ? '' : priceRange[1]}
-                onChange={(e) => setPriceRange([priceRange[0], Number(e.target.value) || 100000])}
+                value={priceRange[1] === 1000000000 ? '' : priceRange[1]}
+                onChange={(e) => setPriceRange([priceRange[0], Number(e.target.value) || 1000000000])}
                 className="w-24 px-3 py-3 border border-black bg-white text-black placeholder:text-black/40 focus:outline-none"
               />
             </div>
@@ -400,12 +400,12 @@ export default function MarketplacePage() {
             {!isLoading && (
               <p className="text-sm text-black/60">
                 {listings.length} {listings.length === 1 ? 'listing' : 'listings'} found
-                {(searchQuery || filter !== 'all' || priceRange[0] > 0 || priceRange[1] < 100000) && (
+                {(searchQuery || filter !== 'all' || priceRange[0] > 0 || priceRange[1] < 10000000) && (
                   <button
                     onClick={() => {
                       setSearchQuery('');
                       setFilter('all');
-                      setPriceRange([0, 100000]);
+                      setPriceRange([0, 10000000]);
                     }}
                     className="ml-2 text-black underline hover:no-underline"
                   >
@@ -444,7 +444,7 @@ export default function MarketplacePage() {
                 className="py-16 text-center border border-dashed border-black/20"
               >
                 <h3 className="text-xl font-bold mb-2">
-                  {searchQuery || filter !== 'all' || priceRange[0] > 0 || priceRange[1] < 100000
+                  {searchQuery || filter !== 'all' || priceRange[0] > 0 || priceRange[1] < 10000000
                     ? "No listings match your filters"
                     : marketType === "primary" 
                       ? "No active listings yet"
@@ -459,12 +459,12 @@ export default function MarketplacePage() {
                       : "Check back later for secondary market listings"
                   }
                 </p>
-                {(searchQuery || filter !== 'all' || priceRange[0] > 0 || priceRange[1] < 100000) ? (
+                {(searchQuery || filter !== 'all' || priceRange[0] > 0 || priceRange[1] < 10000000) ? (
                   <button
                     onClick={() => {
                       setSearchQuery('');
                       setFilter('all');
-                      setPriceRange([0, 100000]);
+                      setPriceRange([0, 10000000]);
                     }}
                     className="px-6 py-2 border border-black font-medium hover:bg-black hover:text-white transition-colors"
                   >
