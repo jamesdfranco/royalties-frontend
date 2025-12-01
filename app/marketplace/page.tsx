@@ -50,16 +50,23 @@ export default function MarketplacePage() {
         // Fetch metadata for each listing (in parallel)
         const formattedPrimary: ListingData[] = await Promise.all(
           activeListings.map(async (l) => {
+            console.log('Fetching metadata for:', l.metadataUri);
             const metadata = await fetchMetadataFromURI(l.metadataUri || '');
+            console.log('Got metadata:', metadata);
             const priceUsdc = Number(l.price) / 1_000_000;
             const durationSeconds = Number(l.durationSeconds);
+            
+            // Build display name
+            const platformLabel = sourceLabels[metadata.platform] || metadata.platform || 'Unknown';
+            const displayName = metadata.name && metadata.name !== 'Untitled' 
+              ? `${platformLabel} - ${metadata.name}`
+              : platformLabel !== 'Unknown' ? platformLabel : 'On-chain Listing';
+            
             return {
               id: l.pubkey,
               creatorName: `${l.creator.slice(0, 4)}...${l.creator.slice(-4)}`,
               creatorAddress: l.creator,
-              revenueSource: metadata.name !== 'Untitled' 
-                ? `${sourceLabels[metadata.platform] || metadata.platform} - ${metadata.name}`
-                : sourceLabels[metadata.platform] || 'On-chain Listing',
+              revenueSource: displayName,
               percentageOffered: l.percentageBps / 100,
               duration: durationSeconds === 0 ? "Perpetual" : `${Math.floor(durationSeconds / (30 * 24 * 60 * 60))} months`,
               durationSeconds: durationSeconds,
