@@ -1,0 +1,122 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: #ffffff;
+  --foreground: #000000;
+}
+
+* {
+  border-radius: 0 !important;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+}
+
+/* Override wallet adapter styles completely */
+.wallet-adapter-button {
+  background-color: #000000 !important;
+  color: #ffffff !important;
+  border-radius: 0 !important;
+  font-family: inherit !important;
+  font-weight: 500 !important;
+  height: auto !important;
+  padding: 8px 16px !important;
+  font-size: 14px !important;
+  line-height: 1.5 !important;
+}
+
+.wallet-adapter-button:hover {
+  background-color: rgba(0, 0, 0, 0.8) !important;
+}
+
+.wallet-adapter-button:not([disabled]):hover {
+  background-color: rgba(0, 0, 0, 0.8) !important;
+}
+
+.wallet-adapter-button-trigger {
+  background-color: #000000 !important;
+}
+
+.wallet-adapter-button[data-state="connected"] {
+  background-color: #000000 !important;
+}
+
+.wallet-adapter-dropdown {
+  border-radius: 0 !important;
+}
+
+.wallet-adapter-dropdown-list {
+  background-color: #ffffff !important;
+  border: 1px solid #000000 !important;
+  border-radius: 0 !important;
+}
+
+.wallet-adapter-dropdown-list-item {
+  border-radius: 0 !important;
+  color: #000000 !important;
+}
+
+.wallet-adapter-dropdown-list-item:hover {
+  background-color: #f5f5f5 !important;
+}
+
+.wallet-adapter-modal-wrapper {
+  background-color: rgba(0, 0, 0, 0.5) !important;
+}
+
+.wallet-adapter-modal-container {
+  background-color: #ffffff !important;
+  border: 1px solid #000000 !important;
+  border-radius: 0 !important;
+}
+
+.wallet-adapter-modal-title {
+  color: #000000 !important;
+  font-weight: 700 !important;
+}
+
+.wallet-adapter-modal-list {
+  margin: 0 !important;
+}
+
+.wallet-adapter-modal-list li {
+  border-radius: 0 !important;
+}
+
+.wallet-adapter-modal-list-more {
+  color: #000000 !important;
+}
+
+.wallet-adapter-modal-middle-button {
+  background-color: #000000 !important;
+  color: #ffffff !important;
+  border-radius: 0 !important;
+}
+
+/* Sharp edge inputs */
+input, select, textarea, button {
+  border-radius: 0 !important;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #ffffff;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #000000;
+}
+
+/* Selection */
+::selection {
+  background: #000000;
+  color: #ffffff;
+}
