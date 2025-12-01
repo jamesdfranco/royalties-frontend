@@ -255,22 +255,33 @@ export default function SellPage() {
       const priceUsdc = Math.floor(Number(formData.price) * 1_000_000);
       const resaleRoyaltyBps = Math.floor(Number(formData.resaleRoyalty || 0) * 100);
       
-      // Create a JSON metadata object, encoded in the URI
+      // Create metadata object
       const metadata = {
         source: formData.revenueSource,
-        work: formData.workIdentifier.slice(0, 100), // Limit length
-        description: formData.description.slice(0, 200), // Limit length
-        imageUrl: formData.imageUrl.slice(0, 200), // Limit URL length
+        work: formData.workIdentifier,
+        description: formData.description,
+        imageUrl: formData.imageUrl,
+        createdAt: Date.now(),
       };
-      // Encode as base64 for on-chain storage (simple approach)
-      const metadataJson = JSON.stringify(metadata);
-      const metadataUri = `data:application/json;base64,${Buffer.from(metadataJson).toString('base64')}`;
       
-      // Check if metadata is too large for on-chain storage
-      if (metadataUri.length > 500) {
-        showToast("Metadata too large. Try shorter description or image URL.", "error");
-        setIsSubmitting(false);
-        return;
+      // Store metadata on server and get short URL
+      showToast("Uploading metadata...", "info");
+      const metadataResponse = await fetch('/api/metadata', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(metadata),
+      });
+      
+      if (!metadataResponse.ok) {
+        const error = await metadataResponse.json();
+        throw new Error(error.error || 'Failed to store metadata');
+      }
+      
+      const { url: metadataUri } = await metadataResponse.json();
+      
+      // Verify URL is short enough for on-chain storage (max 200 chars)
+      if (metadataUri.length > 200) {
+        throw new Error('Metadata URL too long');
       }
 
       const args = {

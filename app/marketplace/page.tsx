@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
 import SectionHeader from "@/components/SectionHeader";
 import ListingCard, { ListingData } from "@/components/ListingCard";
-import { fetchListingsFromAPI, fetchResaleListingsFromAPI, parseMetadataFromAPI } from "@/lib/api";
+import { fetchListingsFromAPI, fetchResaleListingsFromAPI, fetchMetadataFromURI } from "@/lib/api";
 
 // Revenue source display names
 const sourceLabels: Record<string, string> = {
@@ -40,12 +40,17 @@ export default function MarketplacePage() {
       try {
         // Fetch primary listings from cached API
         const primaryData = await fetchListingsFromAPI();
-        const formattedPrimary: ListingData[] = primaryData
-          .filter(l => l.status === 'Active')
-          // Only show listings with new metadata format (has images/descriptions)
-          .filter(l => l.metadataUri?.startsWith('data:application/json;base64,'))
-          .map(l => {
-            const metadata = parseMetadataFromAPI(l.metadataUri || '');
+        
+        // Filter to active listings with valid metadata
+        const activeListings = primaryData.filter(l => 
+          l.status === 'Active' && 
+          (l.metadataUri?.startsWith('data:application/json;base64,') || l.metadataUri?.startsWith('https://'))
+        );
+        
+        // Fetch metadata for each listing (in parallel)
+        const formattedPrimary: ListingData[] = await Promise.all(
+          activeListings.map(async (l) => {
+            const metadata = await fetchMetadataFromURI(l.metadataUri || '');
             const priceUsdc = Number(l.price) / 1_000_000;
             const durationSeconds = Number(l.durationSeconds);
             return {
@@ -64,7 +69,8 @@ export default function MarketplacePage() {
               description: metadata.description,
               platformIcon: metadata.platform,
             };
-          });
+          })
+        );
         
         // Fetch secondary listings from cached API
         const secondaryData = await fetchResaleListingsFromAPI();

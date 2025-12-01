@@ -85,7 +85,7 @@ export async function fetchResaleListingsFromAPI(): Promise<ResaleListingFromAPI
 }
 
 /**
- * Parse metadata URI to extract listing details
+ * Parse metadata URI to extract listing details (sync version for base64)
  */
 export function parseMetadataFromAPI(uri: string): { 
   name: string; 
@@ -93,15 +93,15 @@ export function parseMetadataFromAPI(uri: string): {
   imageUrl: string; 
   description: string;
 } {
-  // Try to parse base64 JSON first
+  // Try to parse base64 JSON first (old format)
   if (uri.startsWith('data:application/json;base64,')) {
     try {
       const base64 = uri.replace('data:application/json;base64,', '');
       const json = JSON.parse(atob(base64));
       return {
-        name: json.name || 'Untitled',
-        platform: json.attributes?.find((a: { trait_type: string; value: string }) => a.trait_type === 'platform')?.value || 'Unknown',
-        imageUrl: json.image || '',
+        name: json.work || json.name || 'Untitled',
+        platform: json.source || json.attributes?.find((a: { trait_type: string; value: string }) => a.trait_type === 'platform')?.value || 'Unknown',
+        imageUrl: json.imageUrl || json.image || '',
         description: json.description || '',
       };
     } catch (e) {
@@ -114,6 +114,47 @@ export function parseMetadataFromAPI(uri: string): {
   return {
     name: parts[parts.length - 1] || 'Untitled',
     platform: parts[0] || 'Unknown',
+    imageUrl: '',
+    description: '',
+  };
+}
+
+/**
+ * Fetch and parse metadata from any URI format (async version)
+ */
+export async function fetchMetadataFromURI(uri: string): Promise<{
+  name: string;
+  platform: string;
+  imageUrl: string;
+  description: string;
+}> {
+  // Base64 encoded JSON (old format)
+  if (uri.startsWith('data:application/json;base64,')) {
+    return parseMetadataFromAPI(uri);
+  }
+  
+  // HTTPS URL to JSON file (new format from Vercel Blob)
+  if (uri.startsWith('https://')) {
+    try {
+      const response = await fetch(uri);
+      if (response.ok) {
+        const json = await response.json();
+        return {
+          name: json.work || json.name || 'Untitled',
+          platform: json.source || 'Unknown',
+          imageUrl: json.imageUrl || json.image || '',
+          description: json.description || '',
+        };
+      }
+    } catch (e) {
+      console.error('Failed to fetch metadata from URL:', e);
+    }
+  }
+  
+  // Fallback
+  return {
+    name: 'Untitled',
+    platform: 'Unknown',
     imageUrl: '',
     description: '',
   };
