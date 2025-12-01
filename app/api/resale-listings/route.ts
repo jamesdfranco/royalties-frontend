@@ -17,15 +17,10 @@ interface ResaleListingAccount {
   isActive: boolean;
 }
 
-// Discriminator for ResaleListing account
-const RESALE_LISTING_DISCRIMINATOR = [214, 254, 220, 107, 49, 129, 174, 134];
-
 function parseResaleListingAccount(pubkey: PublicKey, data: Buffer): ResaleListingAccount | null {
   try {
-    // Check discriminator
-    const discriminator = Array.from(data.slice(0, 8));
-    const matches = RESALE_LISTING_DISCRIMINATOR.every((b, i) => b === discriminator[i]);
-    if (!matches) return null;
+    // ResaleListing is exactly 121 bytes
+    if (data.length !== 121) return null;
 
     let offset = 8;
 

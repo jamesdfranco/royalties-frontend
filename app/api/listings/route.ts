@@ -21,8 +21,8 @@ interface ListingAccount {
   status: string;
 }
 
-// Discriminator for RoyaltyListing account
-const ROYALTY_LISTING_DISCRIMINATOR = [142, 180, 37, 203, 57, 212, 243, 45];
+// Discriminator for RoyaltyListing account: sha256("account:RoyaltyListing")[0..8]
+const ROYALTY_LISTING_DISCRIMINATOR = [114, 27, 40, 41, 206, 120, 0, 66];
 
 function parseListingAccount(pubkey: PublicKey, data: Buffer): ListingAccount | null {
   try {
