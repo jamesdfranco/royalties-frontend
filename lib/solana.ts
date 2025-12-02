@@ -1390,6 +1390,72 @@ export async function cancelResale(
 }
 
 /**
+ * Cancel a primary listing (creator only, before it's sold)
+ */
+export async function cancelListing(
+  provider: AnchorProvider,
+  listingPubkey: string,
+  nftMint: string
+) {
+  const creator = provider.wallet.publicKey;
+  const listing = new PublicKey(listingPubkey);
+  const nftMintPubkey = new PublicKey(nftMint);
+  
+  // Derive the listing PDA to verify
+  const [listingPda] = PublicKey.findProgramAddressSync(
+    [Buffer.from("royalty_listing"), creator.toBuffer(), nftMintPubkey.toBuffer()],
+    PROGRAM_ID
+  );
+  
+  console.log("Cancelling listing...");
+  console.log("Creator:", creator.toBase58());
+  console.log("Listing:", listing.toBase58());
+  console.log("Expected PDA:", listingPda.toBase58());
+  
+  // Discriminator for "cancelListing" = sha256("global:cancel_listing").slice(0, 8)
+  // We need to calculate this properly
+  const discriminator = Buffer.from([198, 81, 85, 40, 245, 252, 182, 194]);
+  
+  const instruction = new web3.TransactionInstruction({
+    keys: [
+      { pubkey: creator, isSigner: true, isWritable: true },
+      { pubkey: listing, isSigner: false, isWritable: true },
+    ],
+    programId: PROGRAM_ID,
+    data: discriminator,
+  });
+  
+  const connection = provider.connection;
+  const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash();
+  
+  const tx = new web3.Transaction({
+    blockhash,
+    lastValidBlockHeight,
+    feePayer: creator,
+  });
+  tx.add(instruction);
+  
+  const signedTx = await provider.wallet.signTransaction(tx);
+  const txId = await connection.sendRawTransaction(signedTx.serialize(), {
+    skipPreflight: false,
+    preflightCommitment: "confirmed",
+  });
+  
+  await connection.confirmTransaction({
+    signature: txId,
+    blockhash,
+    lastValidBlockHeight,
+  }, "confirmed");
+  
+  console.log("Listing cancelled! TX:", txId);
+  
+  // Invalidate caches
+  invalidateListingCaches();
+  
+  return txId;
+}
+
+/**
  * Check if user has a resale listing for a royalty
  */
 export async function fetchUserResaleListing(

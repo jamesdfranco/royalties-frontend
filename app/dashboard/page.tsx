@@ -16,6 +16,7 @@ import {
   claimPayout,
   listForResale,
   cancelResale,
+  cancelListing,
   fetchUserResaleListing,
   useRoyaltiesProgram,
 } from "@/lib/solana";
@@ -47,6 +48,7 @@ interface CreatedListing {
   percentage: number;
   priceUsdc: number;
   status: string;
+  creator?: string;
   payoutPool?: {
     totalDepositedUsdc: number;
     totalClaimedUsdc: number;
@@ -335,6 +337,46 @@ export default function DashboardPage() {
     const contractData = getContractData(contractRoyalty);
     generateContractPDF(contractData);
     showToast('Contract PDF downloaded!', 'success');
+  };
+
+  // Handle cancel primary listing (creator only)
+  const handleCancelListing = async (listing: CreatedListing) => {
+    if (!provider) {
+      showToast("Wallet not connected", "error");
+      return;
+    }
+
+    setIsProcessing(listing.publicKey);
+    try {
+      const txId = await cancelListing(
+        provider,
+        listing.publicKey,
+        listing.nftMint
+      );
+      showToast(`Listing cancelled! TX: ${txId.slice(0, 8)}...`, "success");
+      addActivity({
+        type: 'create_listing',
+        description: `Cancelled listing for ${parseUri(listing.metadataUri).work}`,
+        txId,
+      });
+      
+      // Refresh data
+      if (publicKey) {
+        const created = await fetchUserCreatedListings(publicKey);
+        const createdWithPayouts = await Promise.all(
+          created.map(async (l) => {
+            const payoutPool = await fetchPayoutPool(l.publicKey);
+            return { ...l, payoutPool };
+          })
+        );
+        setCreatedListings(createdWithPayouts);
+      }
+    } catch (error: any) {
+      console.error("Cancel listing failed:", error);
+      showToast(error.message || "Failed to cancel listing", "error");
+    } finally {
+      setIsProcessing(null);
+    }
   };
 
   // Handle cancel resale listing
@@ -686,7 +728,7 @@ export default function DashboardPage() {
                                   className="w-full py-3 border border-red-600 text-red-600 font-medium hover:bg-red-600 hover:text-white transition-colors disabled:opacity-50"
                                 >
                                   {isProcessing === royalty.publicKey ? "Cancelling..." : `Cancel Resale ($${activeResales[royalty.publicKey].priceUsdc.toFixed(2)})`}
-                                </button>
+                  </button>
                               ) : (
                                 <button 
                                   onClick={() => {
@@ -696,7 +738,7 @@ export default function DashboardPage() {
                                   className="w-full py-3 border border-black font-medium hover:bg-black hover:text-white transition-colors"
                                 >
                                   List for Resale
-                                </button>
+                  </button>
                               )
                             )}
                           </div>
@@ -815,7 +857,7 @@ export default function DashboardPage() {
                             </>
                           ) : (
                             <>
-            <div>
+                              <div>
                                 <p className="text-xs text-black/60 uppercase mb-1">Status</p>
                                 <p className="text-xl font-bold capitalize">{listing.status}</p>
                               </div>
@@ -826,6 +868,15 @@ export default function DashboardPage() {
                                 >
                                   View Listing
                                 </Link>
+                                {listing.status === 'Active' && (
+                                  <button
+                                    onClick={() => handleCancelListing(listing)}
+                                    disabled={isProcessing === listing.publicKey}
+                                    className="w-full py-3 border border-red-600 text-red-600 font-medium hover:bg-red-600 hover:text-white transition-colors disabled:opacity-50"
+                                  >
+                                    {isProcessing === listing.publicKey ? "Cancelling..." : "Cancel Listing"}
+                                  </button>
+                                )}
                               </div>
                             </>
                           )}
