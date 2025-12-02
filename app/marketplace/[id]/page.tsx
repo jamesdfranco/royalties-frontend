@@ -8,7 +8,7 @@ import { useWallet } from "@solana/wallet-adapter-react";
 import { useWalletModal } from "@solana/wallet-adapter-react-ui";
 import { VersionedTransaction } from "@solana/web3.js";
 import { useToast } from "@/components/Toast";
-import { fetchAnyListing, buyRoyaltyListing, buyResaleListing, useRoyaltiesProgram, USDC_MINT, getConnection } from "@/lib/solana";
+import { fetchAnyListing, buyRoyaltyListing, buyRoyaltyListingSol, buyResaleListing, useRoyaltiesProgram, USDC_MINT, getConnection } from "@/lib/solana";
 import { getSolPriceForUsdc, createSwapTransaction, formatSol, checkSolBalance, isJupiterAvailable } from "@/lib/jupiter";
 import { fetchMetadataFromURI } from "@/lib/api";
 
@@ -25,6 +25,7 @@ interface ListingDetail {
   startTimestamp: number;
   price: number;
   priceUsdc: number;
+  priceSol: number; // Native SOL price in lamports (0 = not accepting SOL)
   resaleAllowed: boolean;
   creatorRoyaltyBps: number;
   creatorRoyalty: number;
@@ -101,6 +102,7 @@ export default function ListingDetailPage() {
                 startTimestamp: originalListing.startTimestamp,
                 price: resaleData.price,
                 priceUsdc: resaleData.priceUsdc,
+                priceSol: resaleData.priceSol || 0,
                 resaleAllowed: originalListing.resaleAllowed,
                 creatorRoyaltyBps: originalListing.creatorRoyaltyBps,
                 creatorRoyalty: originalListing.creatorRoyalty,
@@ -123,6 +125,7 @@ export default function ListingDetailPage() {
                 startTimestamp: 0,
                 price: resaleData.price,
                 priceUsdc: resaleData.priceUsdc,
+                priceSol: resaleData.priceSol || 0,
                 resaleAllowed: true,
                 creatorRoyaltyBps: 0,
                 creatorRoyalty: 0,
@@ -237,12 +240,49 @@ export default function ListingDetailPage() {
       console.log("Starting purchase...");
       console.log("Payment method:", paymentMethod);
       console.log("Listing:", listing);
+      console.log("Native SOL price:", listing.priceSol);
       
-      // If paying with SOL, first swap to USDC
-      if (paymentMethod === "sol") {
-        // Check if Jupiter is available (mainnet only)
+      let txId: string;
+      
+      // Check if this is a direct SOL payment (native SOL price set on listing)
+      if (paymentMethod === "sol" && listing.priceSol > 0) {
+        console.log("Using direct SOL payment...");
+        
+        // Check SOL balance
+        const connection = getConnection();
+        const solRequired = BigInt(listing.priceSol) + BigInt(10_000_000); // Add some for fees
+        const balance = await connection.getBalance(walletPubkey);
+        
+        if (BigInt(balance) < solRequired) {
+          showToast(
+            `Insufficient SOL. You need ${(Number(listing.priceSol) / 1e9).toFixed(3)} SOL + fees.`,
+            "error"
+          );
+    setIsProcessing(false);
+          return;
+        }
+        
+        showToast("Processing SOL payment...", "info");
+        
+        // Use direct SOL buy instruction
+        if (listing.isResale && listing.seller && listing.royaltyListingPubkey) {
+          // TODO: Add buyResaleListingSol when available
+          showToast("Direct SOL payments for resale not yet implemented. Use USDC.", "error");
+          setIsProcessing(false);
+          return;
+        } else {
+          // Buy from primary market with SOL
+          txId = await buyRoyaltyListingSol(provider, {
+            publicKey: listing.publicKey,
+            creator: listing.creator,
+            nftMint: listing.nftMint,
+            priceSol: listing.priceSol,
+          });
+        }
+      } else if (paymentMethod === "sol") {
+        // SOL payment via Jupiter swap
         if (!jupiterAvailable) {
-          showToast("SOL payments are only available on mainnet. Please use USDC.", "error");
+          showToast("SOL payments via Jupiter are only available on mainnet. Please use USDC.", "error");
           setIsProcessing(false);
           return;
         }
@@ -299,27 +339,40 @@ export default function ListingDetailPage() {
         await connection.confirmTransaction(swapTxId, "confirmed");
         console.log("Swap confirmed!");
         showToast("SOL swapped to USDC. Completing purchase...", "success");
-      }
-      
-      // Now proceed with the buy transaction
-      let txId: string;
-      
-      if (listing.isResale && listing.seller && listing.royaltyListingPubkey) {
-        // Buy from resale (secondary market)
-        txId = await buyResaleListing(provider, {
-          publicKey: listing.publicKey,
-          seller: listing.seller,
-          nftMint: listing.nftMint,
-          royaltyListingPubkey: listing.royaltyListingPubkey,
-          creator: listing.creator,
-        });
+        
+        // Now proceed with USDC buy after swap
+        if (listing.isResale && listing.seller && listing.royaltyListingPubkey) {
+          txId = await buyResaleListing(provider, {
+            publicKey: listing.publicKey,
+            seller: listing.seller,
+            nftMint: listing.nftMint,
+            royaltyListingPubkey: listing.royaltyListingPubkey,
+            creator: listing.creator,
+          });
       } else {
-        // Buy from primary market
-        txId = await buyRoyaltyListing(provider, {
-          publicKey: listing.publicKey,
-          creator: listing.creator,
-          nftMint: listing.nftMint,
-        });
+          txId = await buyRoyaltyListing(provider, {
+            publicKey: listing.publicKey,
+            creator: listing.creator,
+            nftMint: listing.nftMint,
+          });
+        }
+      } else {
+        // USDC payment
+        if (listing.isResale && listing.seller && listing.royaltyListingPubkey) {
+          txId = await buyResaleListing(provider, {
+            publicKey: listing.publicKey,
+            seller: listing.seller,
+            nftMint: listing.nftMint,
+            royaltyListingPubkey: listing.royaltyListingPubkey,
+            creator: listing.creator,
+          });
+        } else {
+          txId = await buyRoyaltyListing(provider, {
+            publicKey: listing.publicKey,
+            creator: listing.creator,
+            nftMint: listing.nftMint,
+          });
+        }
       }
       
       console.log("Purchase successful! TX:", txId);
@@ -779,12 +832,17 @@ export default function ListingDetailPage() {
                               </p>
                             </button>
                             
-                            {/* SOL Option */}
+                            {/* SOL Option - show native price if available, otherwise Jupiter swap */}
                             <button
-                              onClick={() => jupiterAvailable && setPaymentMethod("sol")}
-                              disabled={!jupiterAvailable}
+                              onClick={() => {
+                                // Allow SOL payment if native SOL price is set OR Jupiter is available
+                                if (listing.priceSol > 0 || jupiterAvailable) {
+                                  setPaymentMethod("sol");
+                                }
+                              }}
+                              disabled={listing.priceSol === 0 && !jupiterAvailable}
                               className={`p-4 border-2 transition-all relative ${
-                                !jupiterAvailable 
+                                listing.priceSol === 0 && !jupiterAvailable
                                   ? "border-black/10 bg-black/5 cursor-not-allowed opacity-60"
                                   : paymentMethod === "sol"
                                     ? "border-black bg-black/5"
@@ -796,20 +854,28 @@ export default function ListingDetailPage() {
                                   ◎
                                 </div>
                                 <span className="font-medium">SOL</span>
-                                {!jupiterAvailable && (
+                                {listing.priceSol > 0 && (
+                                  <span className="text-[10px] bg-green-100 text-green-700 px-1.5 py-0.5 rounded">
+                                    Direct
+                                  </span>
+                                )}
+                                {listing.priceSol === 0 && !jupiterAvailable && (
                                   <span className="text-[10px] bg-yellow-100 text-yellow-700 px-1.5 py-0.5 rounded">
                                     Mainnet only
                                   </span>
                                 )}
                               </div>
-                              {isLoadingSolPrice ? (
+                              {/* Show native SOL price if set, otherwise show Jupiter estimate */}
+                              {listing.priceSol > 0 ? (
+                                <p className="text-lg font-bold">
+                                  {(listing.priceSol / 1_000_000_000).toFixed(3)} SOL
+                                </p>
+                              ) : isLoadingSolPrice ? (
                                 <p className="text-lg font-bold text-black/40">Loading...</p>
                               ) : solPrice ? (
                                 <p className="text-lg font-bold">
                                   ~{solPrice.solAmount.toFixed(3)} SOL
-                                  {solPrice.isEstimate && (
-                                    <span className="text-xs font-normal text-black/40 ml-1">(est.)</span>
-                                  )}
+                                  <span className="text-xs font-normal text-black/40 ml-1">(swap)</span>
                                 </p>
                               ) : (
                                 <p className="text-lg font-bold text-black/40">N/A</p>
@@ -817,23 +883,29 @@ export default function ListingDetailPage() {
                             </button>
                           </div>
                           
-                          {!jupiterAvailable && (
+                          {listing.priceSol === 0 && !jupiterAvailable && (
                             <p className="text-xs text-yellow-600 mt-2">
                               ⚠️ SOL payments via Jupiter are only available on mainnet. Use USDC on devnet.
                             </p>
                           )}
                           
-                          {paymentMethod === "sol" && solPrice && jupiterAvailable && (
+                          {paymentMethod === "sol" && listing.priceSol === 0 && solPrice && jupiterAvailable && (
                             <p className="text-xs text-black/50 mt-2">
                               Rate: 1 SOL ≈ ${solPrice.pricePerSol.toFixed(2)} USDC • Includes 1% slippage
                             </p>
                           )}
                           
-                          {paymentMethod === "sol" && solBalance !== null && solPrice && (
+                          {paymentMethod === "sol" && listing.priceSol > 0 && (
+                            <p className="text-xs text-green-600 mt-2">
+                              ✓ Direct SOL payment - no swap fees
+                            </p>
+                          )}
+                          
+                          {paymentMethod === "sol" && solBalance !== null && (
                             <p className={`text-xs mt-1 ${
-                              solBalance >= solPrice.solAmountLamports + BigInt(10_000_000)
-                                ? "text-green-600"
-                                : "text-red-600"
+                              listing.priceSol > 0 
+                                ? (solBalance >= BigInt(listing.priceSol) + BigInt(10_000_000) ? "text-green-600" : "text-red-600")
+                                : (solPrice && solBalance >= solPrice.solAmountLamports + BigInt(10_000_000) ? "text-green-600" : "text-red-600")
                             }`}>
                               Your balance: {formatSol(solBalance)} SOL
                             </p>

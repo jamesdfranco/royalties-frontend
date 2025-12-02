@@ -468,6 +468,121 @@ export async function buyRoyaltyListing(
   return txId;
 }
 
+/**
+ * Buy a royalty listing from primary market with SOL
+ * Uses the native buy_listing_sol instruction
+ */
+export async function buyRoyaltyListingSol(
+  provider: AnchorProvider,
+  listingData: {
+    publicKey: string;
+    creator: string;
+    nftMint: string;
+    priceSol: number; // Price in lamports
+  }
+) {
+  const buyer = provider.wallet.publicKey;
+  const royaltyListingPubkey = new PublicKey(listingData.publicKey);
+  const creator = new PublicKey(listingData.creator);
+  const nftMint = new PublicKey(listingData.nftMint);
+  
+  const [platformConfig] = getPlatformConfigPDA(PROGRAM_ID);
+  
+  // Fetch treasury from platform config
+  const connection = provider.connection;
+  const platformConfigAccount = await connection.getAccountInfo(platformConfig);
+  if (!platformConfigAccount) {
+    throw new Error("Platform not initialized");
+  }
+  
+  // Parse treasury from platform config (offset: 8 discriminator + 32 authority = 40)
+  const treasury = new PublicKey(platformConfigAccount.data.slice(40, 72));
+  
+  console.log("buyRoyaltyListingSol - building instruction manually...");
+  console.log("Buyer:", buyer.toString());
+  console.log("Creator:", creator.toString());
+  console.log("NFT Mint:", nftMint.toString());
+  console.log("Price SOL (lamports):", listingData.priceSol);
+  
+  // Derive NFT token account
+  const buyerNft = getAssociatedTokenAddressSync(nftMint, buyer);
+  
+  // Build transaction
+  const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash();
+  
+  const tx = new web3.Transaction({
+    blockhash,
+    lastValidBlockHeight,
+    feePayer: buyer,
+  });
+  
+  // Create buyer's NFT token account if it doesn't exist
+  const buyerNftAccount = await connection.getAccountInfo(buyerNft);
+  if (!buyerNftAccount) {
+    console.log("Creating buyer NFT account...");
+    tx.add(
+      createAssociatedTokenAccountInstruction(
+      buyer,
+        buyerNft,
+        buyer,
+        nftMint
+      )
+    );
+  }
+  
+  // Discriminator for "buyListingSol" = first 8 bytes of sha256("global:buy_listing_sol")
+  // Calculate: require('crypto').createHash('sha256').update('global:buy_listing_sol').digest().slice(0,8)
+  const discriminator = Buffer.from([237, 55, 221, 146, 187, 106, 127, 139]);
+  
+  // buyListingSol has no args, just the discriminator
+  const data = discriminator;
+  
+  // Build the instruction with all required accounts
+  // Accounts order from buy_listing_sol.rs:
+  // buyer, creator, platform_config, treasury, royalty_listing, nft_mint, buyer_nft, token_program, ata_program, system_program
+  const buyInstruction = new web3.TransactionInstruction({
+    keys: [
+      { pubkey: buyer, isSigner: true, isWritable: true },
+      { pubkey: creator, isSigner: false, isWritable: true },
+      { pubkey: platformConfig, isSigner: false, isWritable: true },
+      { pubkey: treasury, isSigner: false, isWritable: true },
+      { pubkey: royaltyListingPubkey, isSigner: false, isWritable: true },
+      { pubkey: nftMint, isSigner: false, isWritable: true },
+      { pubkey: buyerNft, isSigner: false, isWritable: true },
+      { pubkey: TOKEN_PROGRAM_ID, isSigner: false, isWritable: false },
+      { pubkey: ASSOCIATED_TOKEN_PROGRAM_ID, isSigner: false, isWritable: false },
+      { pubkey: web3.SystemProgram.programId, isSigner: false, isWritable: false },
+    ],
+    programId: PROGRAM_ID,
+    data,
+  });
+  
+  tx.add(buyInstruction);
+  
+  // Sign with wallet and send
+  const signedTx = await provider.wallet.signTransaction(tx);
+  const txId = await connection.sendRawTransaction(signedTx.serialize(), {
+    skipPreflight: false,
+    preflightCommitment: "confirmed",
+  });
+  
+  console.log("Buy SOL transaction sent:", txId);
+  
+  // Confirm transaction
+  await connection.confirmTransaction({
+    signature: txId,
+    blockhash,
+    lastValidBlockHeight,
+  }, "confirmed");
+  
+  console.log("Buy SOL transaction confirmed!");
+  
+  // Invalidate caches after purchase
+  invalidateListingCaches();
+  
+  return txId;
+}
+
 // ============================================
 // READ-ONLY FUNCTIONS (no wallet required)
 // ============================================
@@ -660,8 +775,8 @@ export async function fetchAllResaleListings(forceRefresh: boolean = false): Pro
     const accounts = await connection.getProgramAccounts(PROGRAM_ID, {
       filters: [
         {
-          // ResaleListing::LEN = 121 bytes
-          dataSize: 121,
+          // ResaleListing::LEN = 129 bytes (with priceSol)
+          dataSize: 129,
         },
       ],
     });
@@ -682,6 +797,9 @@ export async function fetchAllResaleListings(forceRefresh: boolean = false): Pro
       const price = data.readBigUInt64LE(offset);
       offset += 8;
       
+      const priceSol = data.readBigUInt64LE(offset);
+      offset += 8;
+      
       const listedAt = data.readBigInt64LE(offset);
       
       return {
@@ -691,6 +809,8 @@ export async function fetchAllResaleListings(forceRefresh: boolean = false): Pro
         nftMint: nftMint.toBase58(),
         price: Number(price),
         priceUsdc: Number(price) / 1_000_000,
+        priceSol: Number(priceSol),
+        priceSolDisplay: Number(priceSol) / 1_000_000_000,
         listedAt: Number(listedAt),
       };
     });
@@ -727,8 +847,8 @@ export async function fetchResaleListing(resaleListingPubkey: string): Promise<a
     
     const data = account.data;
     
-    // Check if it's a ResaleListing by data size (121 bytes)
-    if (data.length !== 121) return null;
+    // Check if it's a ResaleListing by data size (129 bytes with priceSol)
+    if (data.length !== 129) return null;
     
     let offset = 8; // Skip discriminator
     
@@ -744,6 +864,9 @@ export async function fetchResaleListing(resaleListingPubkey: string): Promise<a
     const price = data.readBigUInt64LE(offset);
     offset += 8;
     
+    const priceSol = data.readBigUInt64LE(offset);
+    offset += 8;
+    
     const listedAt = data.readBigInt64LE(offset);
     
     // Fetch the original listing to get full details
@@ -756,6 +879,8 @@ export async function fetchResaleListing(resaleListingPubkey: string): Promise<a
       nftMint: nftMint.toBase58(),
       price: Number(price),
       priceUsdc: Number(price) / 1_000_000,
+      priceSol: Number(priceSol),
+      priceSolDisplay: Number(priceSol) / 1_000_000_000,
       listedAt: Number(listedAt),
       isResale: true,
       // Include original listing details if available

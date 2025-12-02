@@ -9,6 +9,7 @@ export interface ListingFromAPI {
   nftMint: string;
   metadataUri: string;
   price: string;
+  priceSol?: string;
   percentageBps: number;
   durationSeconds: string;
   createdAt: string;
@@ -23,6 +24,7 @@ export interface ResaleListingFromAPI {
   originalListing: string;
   nftMint: string;
   price: string;
+  priceSol?: string;
   createdAt: string;
   isActive: boolean;
 }
