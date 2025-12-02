@@ -16,7 +16,7 @@ import { cache, CACHE_KEYS, CACHE_TTL, invalidateListingCaches, invalidateUserCa
 
 // Program ID from deployment
 const PROGRAM_ID = new PublicKey(
-  process.env.NEXT_PUBLIC_PROGRAM_ID || "9d7TAi23mZtsXV4TRrMjmzHpVaBUxkzekhbc2q7YgJXF"
+  process.env.NEXT_PUBLIC_PROGRAM_ID || "5qw1oP8MLMdtPWrtjdpt2nHWZykTHVEZH1NpYaX8aj9b"
 );
 
 // RPC URL - defaults to devnet for development
