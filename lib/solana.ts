@@ -1413,8 +1413,7 @@ export async function cancelListing(
   console.log("Expected PDA:", listingPda.toBase58());
   
   // Discriminator for "cancelListing" = sha256("global:cancel_listing").slice(0, 8)
-  // We need to calculate this properly
-  const discriminator = Buffer.from([198, 81, 85, 40, 245, 252, 182, 194]);
+  const discriminator = Buffer.from([41, 183, 50, 232, 230, 233, 157, 70]);
   
   const instruction = new web3.TransactionInstruction({
     keys: [
