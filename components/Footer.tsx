@@ -57,16 +57,6 @@ export default function Footer() {
                   Documentation
                 </Link>
               </li>
-              <li>
-                <a href="#" className="text-sm text-black/60 hover:text-black transition-colors">
-                  FAQs
-                </a>
-              </li>
-              <li>
-                <a href="#" className="text-sm text-black/60 hover:text-black transition-colors">
-                  Terms of Service
-                </a>
-              </li>
             </ul>
           </div>
 
@@ -75,7 +65,7 @@ export default function Footer() {
             <ul className="space-y-3">
               <li>
                 <a 
-                  href="https://twitter.com" 
+                  href="https://x.com/royaltiesfun" 
                   target="_blank" 
                   rel="noopener noreferrer"
                   className="text-sm text-black/60 hover:text-black transition-colors"
@@ -85,7 +75,7 @@ export default function Footer() {
               </li>
               <li>
                 <a 
-                  href="https://github.com" 
+                  href="https://github.com/jamesdfranco/royalties" 
                   target="_blank" 
                   rel="noopener noreferrer"
                   className="text-sm text-black/60 hover:text-black transition-colors"
