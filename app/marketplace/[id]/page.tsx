@@ -245,7 +245,11 @@ export default function ListingDetailPage() {
       let txId: string;
       
       // Check if this is a direct SOL payment (native SOL price set on listing)
-      if (paymentMethod === "sol" && listing.priceSol > 0) {
+      // NOTE: Direct SOL payments require the updated smart contract with buy_listing_sol instruction
+      // For now, we disable this and use Jupiter swap instead until contract is deployed
+      const DIRECT_SOL_ENABLED = false; // Set to true after smart contract is redeployed
+      
+      if (paymentMethod === "sol" && listing.priceSol > 0 && DIRECT_SOL_ENABLED) {
         console.log("Using direct SOL payment...");
         
         // Check SOL balance
@@ -258,7 +262,7 @@ export default function ListingDetailPage() {
             `Insufficient SOL. You need ${(Number(listing.priceSol) / 1e9).toFixed(3)} SOL + fees.`,
             "error"
           );
-    setIsProcessing(false);
+          setIsProcessing(false);
           return;
         }
         
@@ -832,17 +836,12 @@ export default function ListingDetailPage() {
                               </p>
                             </button>
                             
-                            {/* SOL Option - show native price if available, otherwise Jupiter swap */}
+                            {/* SOL Option - Jupiter swap only for now (direct SOL requires contract update) */}
                             <button
-                              onClick={() => {
-                                // Allow SOL payment if native SOL price is set OR Jupiter is available
-                                if (listing.priceSol > 0 || jupiterAvailable) {
-                                  setPaymentMethod("sol");
-                                }
-                              }}
-                              disabled={listing.priceSol === 0 && !jupiterAvailable}
+                              onClick={() => jupiterAvailable && setPaymentMethod("sol")}
+                              disabled={!jupiterAvailable}
                               className={`p-4 border-2 transition-all relative ${
-                                listing.priceSol === 0 && !jupiterAvailable
+                                !jupiterAvailable
                                   ? "border-black/10 bg-black/5 cursor-not-allowed opacity-60"
                                   : paymentMethod === "sol"
                                     ? "border-black bg-black/5"
@@ -854,28 +853,21 @@ export default function ListingDetailPage() {
                                   ◎
                                 </div>
                                 <span className="font-medium">SOL</span>
-                                {listing.priceSol > 0 && (
-                                  <span className="text-[10px] bg-green-100 text-green-700 px-1.5 py-0.5 rounded">
-                                    Direct
-                                  </span>
-                                )}
-                                {listing.priceSol === 0 && !jupiterAvailable && (
+                                {!jupiterAvailable && (
                                   <span className="text-[10px] bg-yellow-100 text-yellow-700 px-1.5 py-0.5 rounded">
                                     Mainnet only
                                   </span>
                                 )}
                               </div>
-                              {/* Show native SOL price if set, otherwise show Jupiter estimate */}
-                              {listing.priceSol > 0 ? (
-                                <p className="text-lg font-bold">
-                                  {(listing.priceSol / 1_000_000_000).toFixed(3)} SOL
-                                </p>
-                              ) : isLoadingSolPrice ? (
+                              {/* Show Jupiter swap estimate */}
+                              {isLoadingSolPrice ? (
                                 <p className="text-lg font-bold text-black/40">Loading...</p>
                               ) : solPrice ? (
                                 <p className="text-lg font-bold">
                                   ~{solPrice.solAmount.toFixed(3)} SOL
-                                  <span className="text-xs font-normal text-black/40 ml-1">(swap)</span>
+                                  {solPrice.isEstimate && (
+                                    <span className="text-xs font-normal text-black/40 ml-1">(est.)</span>
+                                  )}
                                 </p>
                               ) : (
                                 <p className="text-lg font-bold text-black/40">N/A</p>
@@ -883,29 +875,23 @@ export default function ListingDetailPage() {
                             </button>
                           </div>
                           
-                          {listing.priceSol === 0 && !jupiterAvailable && (
+                          {!jupiterAvailable && (
                             <p className="text-xs text-yellow-600 mt-2">
                               ⚠️ SOL payments via Jupiter are only available on mainnet. Use USDC on devnet.
                             </p>
                           )}
                           
-                          {paymentMethod === "sol" && listing.priceSol === 0 && solPrice && jupiterAvailable && (
+                          {paymentMethod === "sol" && solPrice && jupiterAvailable && (
                             <p className="text-xs text-black/50 mt-2">
                               Rate: 1 SOL ≈ ${solPrice.pricePerSol.toFixed(2)} USDC • Includes 1% slippage
                             </p>
                           )}
                           
-                          {paymentMethod === "sol" && listing.priceSol > 0 && (
-                            <p className="text-xs text-green-600 mt-2">
-                              ✓ Direct SOL payment - no swap fees
-                            </p>
-                          )}
-                          
-                          {paymentMethod === "sol" && solBalance !== null && (
+                          {paymentMethod === "sol" && solBalance !== null && solPrice && (
                             <p className={`text-xs mt-1 ${
-                              listing.priceSol > 0 
-                                ? (solBalance >= BigInt(listing.priceSol) + BigInt(10_000_000) ? "text-green-600" : "text-red-600")
-                                : (solPrice && solBalance >= solPrice.solAmountLamports + BigInt(10_000_000) ? "text-green-600" : "text-red-600")
+                              solBalance >= solPrice.solAmountLamports + BigInt(10_000_000)
+                                ? "text-green-600"
+                                : "text-red-600"
                             }`}>
                               Your balance: {formatSol(solBalance)} SOL
                             </p>
