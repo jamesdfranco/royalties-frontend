@@ -50,6 +50,7 @@ export interface CreateListingArgs {
   percentageBps: number;
   durationSeconds: BN;
   price: BN;
+  priceSol: BN;  // Price in lamports (0 = SOL not accepted)
   resaleAllowed: boolean;
   creatorRoyaltyBps: number;
 }
@@ -238,6 +239,10 @@ export async function createRoyaltyListing(
   const priceBigInt = BigInt(args.price.toString());
   priceBytes.writeBigUInt64LE(priceBigInt, 0);
 
+  const priceSolBytes = Buffer.alloc(8);
+  const priceSolBigInt = BigInt(args.priceSol?.toString() || '0');
+  priceSolBytes.writeBigUInt64LE(priceSolBigInt, 0);
+
   const resaleAllowedBytes = Buffer.from([args.resaleAllowed ? 1 : 0]);
 
   const creatorRoyaltyBpsBytes = Buffer.alloc(2);
@@ -251,6 +256,7 @@ export async function createRoyaltyListing(
     percentageBpsBytes,
     durationSecondsBytes,
     priceBytes,
+    priceSolBytes,
     resaleAllowedBytes,
     creatorRoyaltyBpsBytes,
   ]);

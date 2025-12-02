@@ -289,6 +289,7 @@ export default function SellPage() {
         percentageBps: percentageBps,
         durationSeconds: durationSeconds,
         price: new BN(priceUsdc),
+        priceSol: new BN(0), // SOL price - 0 means SOL not accepted (can add UI later)
         resaleAllowed: Boolean(formData.allowResale),
         creatorRoyaltyBps: resaleRoyaltyBps,
       };
