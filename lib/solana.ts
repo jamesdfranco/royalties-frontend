@@ -823,9 +823,9 @@ export async function fetchUserOwnedRoyalties(walletPubkey: PublicKey): Promise<
 /**
  * Fetch user's created listings (as creator)
  */
-export async function fetchUserCreatedListings(walletPubkey: PublicKey): Promise<any[]> {
+export async function fetchUserCreatedListings(walletPubkey: PublicKey, forceRefresh: boolean = false): Promise<any[]> {
   try {
-    const allListings = await fetchAllListings();
+    const allListings = await fetchAllListings(forceRefresh);
     return allListings.filter(listing => listing.creator === walletPubkey.toBase58());
   } catch (error) {
     console.error("Failed to fetch user created listings:", error);

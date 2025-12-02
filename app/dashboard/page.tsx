@@ -360,9 +360,9 @@ export default function DashboardPage() {
         txId,
       });
       
-      // Refresh data
+      // Refresh data with force refresh to get updated status
       if (publicKey) {
-        const created = await fetchUserCreatedListings(publicKey);
+        const created = await fetchUserCreatedListings(publicKey, true);
         const createdWithPayouts = await Promise.all(
           created.map(async (l) => {
             const payoutPool = await fetchPayoutPool(l.publicKey);
@@ -823,14 +823,14 @@ export default function DashboardPage() {
                               <p className="text-xs text-black/60 uppercase">Total Claimed</p>
                               <p className="font-medium">${totalClaimed.toFixed(2)}</p>
                             </div>
-                          </div>
-            </div>
+          </div>
+        </div>
 
                         {/* Actions */}
                         <div className="lg:w-64 bg-black/5 p-6 flex flex-col justify-between">
                           {listing.status === 'Sold' ? (
                             <>
-                      <div>
+            <div>
                                 <p className="text-xs text-black/60 uppercase mb-1">Holder Earnings</p>
                                 <p className="text-2xl font-bold">
                                   ${totalDeposited.toFixed(2)}
@@ -857,10 +857,10 @@ export default function DashboardPage() {
                             </>
                           ) : (
                             <>
-                              <div>
+                      <div>
                                 <p className="text-xs text-black/60 uppercase mb-1">Status</p>
                                 <p className="text-xl font-bold capitalize">{listing.status}</p>
-                              </div>
+                      </div>
                               <div className="flex flex-col gap-2 mt-4">
                                 <Link
                                   href={`/marketplace/${listing.publicKey}`}
@@ -875,7 +875,7 @@ export default function DashboardPage() {
                                     className="w-full py-3 border border-red-600 text-red-600 font-medium hover:bg-red-600 hover:text-white transition-colors disabled:opacity-50"
                                   >
                                     {isProcessing === listing.publicKey ? "Cancelling..." : "Cancel Listing"}
-                                  </button>
+                        </button>
                                 )}
                               </div>
                             </>
