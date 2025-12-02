@@ -61,6 +61,7 @@ export default function MarketplacePage() {
             const metadata = await fetchMetadataFromURI(l.metadataUri || '');
             console.log('Got metadata:', metadata);
             const priceUsdc = Number(l.price) / 1_000_000;
+            const priceSol = l.priceSol ? Number(l.priceSol) / 1_000_000_000 : 0; // Convert lamports to SOL
             const durationSeconds = Number(l.durationSeconds);
             
             // Build display names
@@ -78,6 +79,7 @@ export default function MarketplacePage() {
               durationSeconds: durationSeconds,
               startTimestamp: Number(l.createdAt),
               price: priceUsdc,
+              priceSol: priceSol,
               imageUrl: metadata.imageUrl,
               description: metadata.description,
               platformIcon: metadata.platform,
@@ -112,6 +114,7 @@ export default function MarketplacePage() {
               
               const platformLabel = sourceLabels[metadata.platform] || metadata.platform || 'Unknown';
               const displayName = metadata.name && metadata.name !== 'Untitled' ? metadata.name : 'Royalty Contract';
+              const priceSol = l.priceSol ? Number(l.priceSol) / 1_000_000_000 : 0; // Convert lamports to SOL
               
               return {
                 id: l.pubkey,
@@ -122,6 +125,7 @@ export default function MarketplacePage() {
                 percentageOffered: percentage,
                 duration: "See Details",
                 price: priceUsdc,
+                priceSol: priceSol,
                 isSecondary: true,
                 currentOwner: `${l.seller.slice(0, 4)}...${l.seller.slice(-4)}`,
                 imageUrl: metadata.imageUrl,

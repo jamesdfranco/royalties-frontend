@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { Connection, PublicKey } from '@solana/web3.js';
 import { getFromCache, setInCache, CACHE_TTL, isRedisConfigured } from '@/lib/redis';
 
-const PROGRAM_ID = process.env.NEXT_PUBLIC_PROGRAM_ID || '9d7TAi23mZtsXV4TRrMjmzHpVaBUxkzekhbc2q7YgJXF';
+const PROGRAM_ID = process.env.NEXT_PUBLIC_PROGRAM_ID || '5qw1oP8MLMdtPWrtjdpt2nHWZykTHVEZH1NpYaX8aj9b';
 const RPC_URL = process.env.NEXT_PUBLIC_SOLANA_RPC_URL || 'https://api.devnet.solana.com';
 
 const CACHE_KEY = 'listings:resale';
@@ -13,14 +13,15 @@ interface ResaleListingAccount {
   originalListing: string;
   nftMint: string;
   price: string;
+  priceSol: string;
   createdAt: string;
   isActive: boolean;
 }
 
 function parseResaleListingAccount(pubkey: PublicKey, data: Buffer): ResaleListingAccount | null {
   try {
-    // ResaleListing is exactly 121 bytes (8 disc + 32 seller + 32 royalty_listing + 32 nft_mint + 8 price + 8 listed_at + 1 bump)
-    if (data.length !== 121) return null;
+    // ResaleListing is exactly 129 bytes (8 disc + 32 seller + 32 royalty_listing + 32 nft_mint + 8 price + 8 price_sol + 8 listed_at + 1 bump)
+    if (data.length !== 129) return null;
 
     let offset = 8; // Skip discriminator
 
@@ -36,10 +37,16 @@ function parseResaleListingAccount(pubkey: PublicKey, data: Buffer): ResaleListi
     const nftMint = new PublicKey(data.slice(offset, offset + 32)).toString();
     offset += 32;
 
-    // price (u64 - 8 bytes)
+    // price (u64 - 8 bytes) - USDC price
     const priceLow = data.readUInt32LE(offset);
     const priceHigh = data.readUInt32LE(offset + 4);
     const price = (BigInt(priceHigh) << 32n) + BigInt(priceLow);
+    offset += 8;
+
+    // priceSol (u64 - 8 bytes) - SOL price in lamports
+    const priceSolLow = data.readUInt32LE(offset);
+    const priceSolHigh = data.readUInt32LE(offset + 4);
+    const priceSol = (BigInt(priceSolHigh) << 32n) + BigInt(priceSolLow);
     offset += 8;
 
     // listedAt (i64 - 8 bytes)
@@ -59,6 +66,7 @@ function parseResaleListingAccount(pubkey: PublicKey, data: Buffer): ResaleListi
       originalListing,
       nftMint,
       price: price.toString(),
+      priceSol: priceSol.toString(),
       createdAt: listedAt.toString(),
       isActive: true, // If the account exists, it's active
     };

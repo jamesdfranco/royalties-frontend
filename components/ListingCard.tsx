@@ -11,6 +11,7 @@ export interface ListingData {
   durationSeconds?: number; // for countdown
   startTimestamp?: number;  // for countdown
   price: number;
+  priceSol?: number; // SOL price (in SOL, not lamports)
   currency?: string;
   isSecondary?: boolean;
   currentOwner?: string;
@@ -62,6 +63,7 @@ export default function ListingCard({ listing }: ListingCardProps) {
     durationSeconds,
     startTimestamp,
     price,
+    priceSol,
     currency = "USDC",
     isSecondary = false,
     currentOwner,
@@ -131,10 +133,17 @@ export default function ListingCard({ listing }: ListingCardProps) {
           )}
         </div>
         {/* Price badge */}
-        <div className="absolute bottom-3 right-3">
-          <span className="text-sm font-bold bg-white text-black px-3 py-1.5 shadow-lg">
-            {price.toLocaleString()} {currency}
-          </span>
+        <div className="absolute bottom-3 right-3 flex flex-col items-end gap-1">
+          {price > 0 && (
+            <span className="text-sm font-bold bg-white text-black px-3 py-1 shadow-lg">
+              ${price.toLocaleString()} USDC
+            </span>
+          )}
+          {priceSol && priceSol > 0 && (
+            <span className="text-xs font-medium bg-black/80 text-white px-2 py-0.5">
+              {priceSol.toLocaleString()} SOL
+            </span>
+          )}
         </div>
       </div>
 
